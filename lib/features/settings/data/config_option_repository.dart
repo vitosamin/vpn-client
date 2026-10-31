@@ -31,9 +31,13 @@ abstract class ConfigOptions {
     mapTo: (value) => value.key,
   );
 
+  // The product ships to Russia first: a new install starts with the Russian region rule
+  // (bypassRegion, enabled by default in rules_notifier.dart), so RU domains and IPs go
+  // direct from the first connect. The intro still detects the region from the timezone and
+  // overrides this value; a user who picks another region keeps it (this is only the default).
   static final region = PreferencesNotifier.create<Region, String>(
     "region",
-    Region.other,
+    Region.ru,
     mapFrom: Region.values.byName,
     mapTo: (value) => value.name,
   );
