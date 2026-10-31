@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/analytics/analytics_controller.dart';
 import 'package:hiddify/core/http_client/dio_http_client.dart';
 import 'package:hiddify/core/localization/locale_preferences.dart';
@@ -171,6 +172,13 @@ class IntroPage extends HookConsumerWidget with PresLogger {
                       ),
                       style: theme.textTheme.bodySmall,
                     ),
+                  ),
+                  const Gap(8),
+                  TextButton.icon(
+                    key: const ValueKey('intro_activation_button'),
+                    onPressed: () => context.go('/activate'),
+                    icon: const Icon(Icons.key_rounded),
+                    label: Text(t.pages.activation.alreadyHaveCode),
                   ),
                   // only for managing license node focus
                   Focus(

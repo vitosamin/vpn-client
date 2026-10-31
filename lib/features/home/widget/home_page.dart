@@ -1,6 +1,7 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
@@ -60,6 +61,15 @@ class HomePage extends HookConsumerWidget {
           //     material: (context, platform) => MaterialIconButtonData(
           //           tooltip: t.profile.add.buttonText,
           //         )),
+          Semantics(
+            key: const ValueKey("activation_button"),
+            label: t.pages.activation.title,
+            child: IconButton(
+              icon: Icon(Icons.key_rounded, color: theme.colorScheme.primary),
+              tooltip: t.pages.activation.title,
+              onPressed: () => context.go('/activate'),
+            ),
+          ),
           Semantics(
             key: const ValueKey("profile_add_button"),
             label: t.pages.profiles.add,

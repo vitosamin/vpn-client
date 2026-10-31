@@ -124,6 +124,36 @@ class DioHttpClient with InfraLogger {
     );
   }
 
+  /// A JSON POST. Retries are off: a POST is not idempotent by default, so the caller decides
+  /// whether to repeat it (the activation API, for one, has its own retry rules).
+  Future<Response<T>> post<T>(
+    String url, {
+    Object? data,
+    Map<String, dynamic>? headers,
+    CancelToken? cancelToken,
+    String? userAgent,
+    bool proxyOnly = false,
+  }) async {
+    final mode = proxyOnly
+        ? "proxy"
+        : await isPortOpen("127.0.0.1", port)
+        ? "both"
+        : "direct";
+    final dio = _dio[mode]!;
+
+    final baseOptions = _options(url, userAgent: userAgent);
+    final options = baseOptions.copyWith(
+      responseType: ResponseType.json,
+      headers: <String, dynamic>{
+        ...?baseOptions.headers,
+        "Content-Type": Headers.jsonContentType,
+        ...?headers,
+      },
+    )..disableRetry = true;
+
+    return dio.post<T>(url, data: data, cancelToken: cancelToken, options: options);
+  }
+
   Future<Response> download(
     String url,
     String path, {

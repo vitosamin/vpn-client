@@ -81,6 +81,9 @@
                 <data android:scheme="clash" />
                 <data android:scheme="clashmeta" />
                 <data android:scheme="sing-box" />
+                <!-- Activation link from the bot: vpn://activate?code=… The host is checked in
+                     the router, which accepts `activate` only. -->
+                <data android:scheme="vpn" />
 
                 <!-- <data android:host="import" />
                 <data android:host="install-config" />

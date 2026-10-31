@@ -9,6 +9,8 @@ import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.
 import 'package:hiddify/core/router/go_router/helper/custom_transition.dart';
 import 'package:hiddify/core/router/go_router/refresh_listenable.dart';
 import 'package:hiddify/features/about/widget/about_page.dart';
+import 'package:hiddify/features/activation/activation_constants.dart';
+import 'package:hiddify/features/activation/overview/activation_page.dart';
 import 'package:hiddify/features/app_based_routing/overview/app_list_page.dart';
 import 'package:hiddify/features/home/widget/home_page.dart';
 import 'package:hiddify/features/intro/widget/intro_page.dart';
@@ -69,6 +71,20 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
     if (isMobileBreakpoint == null) return loadingConfig;
     return RoutingConfig(
       redirect: (context, state) {
+        // Activation deep link: vpn://activate?code=… Only that host is honoured; any other
+        // vpn:// link is ignored (it must never become an arbitrary route or URL).
+        if (state.uri.scheme == ActivationLink.scheme) {
+          if (state.uri.host != ActivationLink.activateHost) return '/home';
+          final code = state.uri.queryParameters['code']?.trim() ?? '';
+          return Uri(
+            path: '/activate',
+            queryParameters: {if (code.isNotEmpty) 'code': code},
+          ).toString();
+        }
+        // The activation page is reachable before the intro is done: a user who got a code
+        // right after payment should not have to find the button first.
+        if (state.matchedLocation == '/activate') return null;
+
         // fix path-parameters for deep link
         String? url;
         if (LinkParser.protocols.contains(state.uri.scheme)) {
@@ -312,6 +328,11 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
           ],
         ),
         GoRoute(name: 'intro', path: '/intro', builder: (_, _) => const IntroPage()),
+        GoRoute(
+          name: 'activation',
+          path: '/activate',
+          builder: (_, state) => ActivationPage(initialCode: state.uri.queryParameters['code']),
+        ),
       ],
     );
   }

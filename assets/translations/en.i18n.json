@@ -605,6 +605,27 @@
           "conduitPairingId": "Conduit pairing ID"
         }
       }
+    },
+    "activation": {
+      "title": "Activation",
+      "description": "Enter the code you received after payment. The app fetches your subscription and adds it as a profile.",
+      "code": "Activation code",
+      "codeHint": "Paste the code from the message",
+      "paste": "Paste",
+      "activate": "Activate",
+      "activating": "Activating…",
+      "alreadyHaveCode": "Already have a code?",
+      "successTitle": "Activated",
+      "successBody": "Profile \"${name}\" was added and is now active.",
+      "expire": "Valid until",
+      "noExpiry": "No expiry date",
+      "trafficLeft": "Traffic left",
+      "unlimitedTraffic": "Unlimited",
+      "unsignedTraffic": "—",
+      "done": "Done",
+      "emptyCode": "Enter the activation code",
+      "invalidCodeFormat": "A code contains only letters, digits, “_” and “-” (8–256 characters)",
+      "pasteFailed": "There is no code in the clipboard"
     }
   },
   "components": {
@@ -861,6 +882,21 @@
     "psiphon": {
       "missingLicense": "Psiphon license required",
       "missingLicenseMsg": "This profile uses Psiphon. Accept the Psiphon license to continue."
+    },
+    "activation": {
+      "unexpected": "Unexpected activation error",
+      "network": "Could not reach the activation service. Check your connection.",
+      "invalidRequest": "The activation request was rejected. Update the app or contact support.",
+      "codeNotFound": "No such code. Check it and try again.",
+      "codeExpired": "The code has expired. Ask for a new one.",
+      "codeAlreadyUsed": "The code is already activated on another device.",
+      "codeRevoked": "The code was revoked. Ask for a new one.",
+      "codeLocked": "The code is blocked after too many attempts. Contact support.",
+      "activationInProgress": "Activation is already in progress. Trying again…",
+      "rateLimited": "Too many attempts. Try again in a minute.",
+      "panelUnavailable": "The service is temporarily unavailable. Try again later.",
+      "serviceUnavailable": "Activation is unavailable right now. Try again later.",
+      "profileFailed": "The code was activated, but the profile could not be added. Try activating again."
     }
   }
 }
