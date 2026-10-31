@@ -16,6 +16,7 @@ import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:hiddify/features/proxy/active/ip_widget.dart';
+import 'package:hiddify/features/proxy/active/priority_failover_notifier.dart';
 import 'package:hiddify/features/proxy/model/proxy_entity.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
@@ -312,7 +313,13 @@ class _ProxyRow extends ConsumerWidget {
       title: Semantics(
         label: t.pages.proxies.activeProxy,
         child: group == null
-            ? Text(server.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: nameStyle)
+            ? Row(
+                children: [
+                  Flexible(child: Text(server.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: nameStyle)),
+                  const Gap(6),
+                  _PriorityChip(tag: server.tag),
+                ],
+              )
             : Row(
                 children: [
                   Icon(
@@ -356,6 +363,38 @@ class _ProxyRow extends ConsumerWidget {
         ],
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
+    );
+  }
+}
+
+/// "auto" while the priority selector keeps this server active, "failover" when
+/// the active one is not the first server in the subscription anymore.
+class _PriorityChip extends ConsumerWidget {
+  const _PriorityChip({required this.tag});
+
+  final String tag;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(priorityAutoSelectNotifierProvider);
+    if (!status.following || status.activeTag != tag) return const SizedBox.shrink();
+    final t = ref.watch(translationsProvider).requireValue;
+    final theme = Theme.of(context);
+    final color = status.isFailover ? theme.colorScheme.tertiary : theme.colorScheme.primary;
+    return Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(6, 1, 6, 1),
+      decoration: BoxDecoration(color: color.withValues(alpha: .14), borderRadius: BorderRadius.circular(6)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(status.isFailover ? Icons.swap_horiz_rounded : Icons.verified_rounded, size: 12, color: color),
+          const Gap(3),
+          Text(
+            status.isFailover ? t.pages.proxies.priorityFailover : t.pages.proxies.priorityAuto,
+            style: theme.textTheme.labelSmall?.copyWith(color: color, letterSpacing: .2),
+          ),
+        ],
+      ),
     );
   }
 }
