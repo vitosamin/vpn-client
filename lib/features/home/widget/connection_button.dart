@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
@@ -20,7 +21,6 @@ import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:hiddify/features/proxy/model/connection_health.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/features/stats/notifier/stats_notifier.dart';
-import 'package:hiddify/gen/assets.gen.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -49,7 +49,10 @@ _Look _lookOf(AsyncValue<ConnectionStatus> status) => switch (status) {
 };
 
 class ConnectionButton extends HookConsumerWidget {
-  const ConnectionButton({super.key});
+  const ConnectionButton({super.key, this.showLabel = true});
+
+  /// The home hero draws the status itself, so it turns the label under the circle off.
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -85,7 +88,6 @@ class ConnectionButton extends HookConsumerWidget {
     final showHealth = ref.read(bottomSheetsNotifierProvider.notifier).showConnectionHealth;
 
     const buttonTheme = ConnectionButtonTheme.light;
-    final today = DateTime.now();
     return _ConnectionButton(
       look: look,
       onTap: onTap,
@@ -132,11 +134,7 @@ class ConnectionButton extends HookConsumerWidget {
         _Look.connecting || _Look.waiting || _Look.hotReloading || _Look.disconnecting => const Color(0xFF455FE9),
         _ => buttonTheme.idleColor!,
       },
-      image: switch (look) {
-        _Look.connected || _Look.noProxies || _Look.hotReloading => Assets.images.connectNorouz,
-        _ => Assets.images.disconnectNorouz,
-      },
-      useImage: today.day >= 19 && today.day <= 23 && today.month == 3,
+      showLabel: showLabel,
     );
   }
 
@@ -217,8 +215,7 @@ class _ConnectionButton extends HookWidget {
     required this.onChain,
     required this.onLabel,
     required this.buttonColor,
-    required this.image,
-    required this.useImage,
+    required this.showLabel,
   });
 
   final _Look look;
@@ -241,8 +238,7 @@ class _ConnectionButton extends HookWidget {
   /// Opens the connection check from a label that names a problem; null otherwise.
   final VoidCallback? onLabel;
   final Color buttonColor;
-  final AssetGenImage image;
-  final bool useImage;
+  final bool showLabel;
 
   static const _size = 148.0;
 
@@ -360,11 +356,26 @@ class _ConnectionButton extends HookWidget {
                               radius: _size / 2,
                               traffic: traffic.value,
                               dark: theme.brightness == Brightness.dark,
-                              drawLogo: !useImage,
-                              logoOpacity: look == _Look.loading ? .38 : 1,
+                              // the upstream logo is off: the brand monogram sits on top
+                              drawLogo: false,
                             ),
                           );
                         },
+                      ),
+                    ),
+                  ),
+                ),
+                // the Vitosamin monogram, white on whatever the eclipse paints
+                Center(
+                  child: IgnorePointer(
+                    child: AnimatedOpacity(
+                      opacity: look == _Look.loading ? .38 : 1,
+                      duration: const Duration(milliseconds: 250),
+                      child: SvgPicture.asset(
+                        'assets/images/logo.svg',
+                        width: _size * .38,
+                        height: _size * .38,
+                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                       ),
                     ),
                   ),
@@ -377,7 +388,6 @@ class _ConnectionButton extends HookWidget {
                   child: InkWell(
                     focusColor: Colors.grey,
                     onTap: onTap,
-                    child: useImage ? Padding(padding: const EdgeInsets.all(36), child: image.image()) : null,
                   ),
                 ),
                 // the error badge opens what went wrong
@@ -409,42 +419,44 @@ class _ConnectionButton extends HookWidget {
             ),
           ),
         ),
-        const Gap(24),
-        ExcludeSemantics(
-          excluding: onLabel == null,
-          child: Column(
-            children: [
-              if (onLabel case final onLabel?)
-                // the label names what stops the traffic; tapping it shows the whole path
-                InkWell(
-                  onTap: onLabel,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(child: AnimatedText(label, style: theme.textTheme.titleMedium)),
-                        Icon(Icons.chevron_right_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                AnimatedText(label, style: theme.textTheme.titleMedium),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: hint == null
-                    ? const SizedBox.shrink()
-                    : Text(
-                        hint!,
-                        key: ValueKey(hint),
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        if (showLabel) ...[
+          const Gap(24),
+          ExcludeSemantics(
+            excluding: onLabel == null,
+            child: Column(
+              children: [
+                if (onLabel case final onLabel?)
+                  // the label names what stops the traffic; tapping it shows the whole path
+                  InkWell(
+                    onTap: onLabel,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(child: AnimatedText(label, style: theme.textTheme.titleMedium)),
+                          Icon(Icons.chevron_right_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                        ],
                       ),
-              ),
-            ],
+                    ),
+                  )
+                else
+                  AnimatedText(label, style: theme.textTheme.titleMedium),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: hint == null
+                      ? const SizedBox.shrink()
+                      : Text(
+                          hint!,
+                          key: ValueKey(hint),
+                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

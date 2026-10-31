@@ -5,14 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
-import 'package:hiddify/features/home/widget/connection_button.dart';
+import 'package:hiddify/features/home/widget/home_hero.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
-import 'package:hiddify/features/profile/widget/profile_tile.dart';
-import 'package:hiddify/features/proxy/active/active_proxy_card.dart';
-import 'package:hiddify/features/proxy/active/active_proxy_delay_indicator.dart';
 import 'package:hiddify/gen/assets.gen.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:sliver_tools/sliver_tools.dart';
 
 class HomePage extends HookConsumerWidget {
   const HomePage({super.key});
@@ -21,18 +17,11 @@ class HomePage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final t = ref.watch(translationsProvider).requireValue;
-    // final hasAnyProfile = ref.watch(hasAnyProfileProvider);
-    final activeProfile = ref.watch(activeProfileProvider);
+    // null while the profile list loads; only a known "no profiles" shows the empty home
+    final hasAnyProfile = ref.watch(hasAnyProfileProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
-        // leading: (RootScaffold.stateKey.currentState?.hasDrawer ?? false) && showDrawerButton(context)
-        //     ? DrawerButton(
-        //         onPressed: () {
-        //           RootScaffold.stateKey.currentState?.openDrawer();
-        //         },
-        //       )
-        //     : null,
         title: Row(
           children: [
             Assets.images.logo.svg(height: 24),
@@ -49,18 +38,6 @@ class HomePage extends HookConsumerWidget {
           ],
         ),
         actions: [
-          // IconButton(
-          //     onPressed: () => const QuickSettingsRoute().push(context),
-          //     icon: const Icon(FluentIcons.options_24_filled),
-          //     material: (context, platform) => MaterialIconButtonData(
-          //           tooltip: t.config.quickSettings,
-          //         )),
-          // IconButton(
-          //     onPressed: () => const AddProfileRoute().push(context),
-          //     icon: const Icon(FluentIcons.add_circle_24_filled),
-          //     material: (context, platform) => MaterialIconButtonData(
-          //           tooltip: t.profile.add.buttonText,
-          //         )),
           Semantics(
             key: const ValueKey("activation_button"),
             label: t.pages.activation.title,
@@ -81,136 +58,89 @@ class HomePage extends HookConsumerWidget {
           const Gap(8),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          // A sky behind the connect button, as at an eclipse: in dark mode a touch lighter round
-          // the button, fading to the theme's own dark; in light mode brightest there, a touch
-          // darker towards the edges. Both barely there, centred on where the button sits.
-          gradient: theme.brightness == Brightness.dark
-              ? RadialGradient(
-                  center: const Alignment(0, -.15),
-                  radius: .85,
-                  colors: [
-                    Colors.white.withValues(alpha: .045),
-                    Colors.white.withValues(alpha: .015),
-                    Colors.white.withValues(alpha: 0),
-                  ],
-                  stops: const [0, .45, 1],
-                )
-              : RadialGradient(
-                  center: const Alignment(0, -.15),
-                  radius: 1.1,
-                  colors: [
-                    Colors.white.withValues(alpha: .55),
-                    Colors.white.withValues(alpha: 0),
-                    Colors.black.withValues(alpha: .045),
-                  ],
-                  stops: const [0, .5, 1],
-                ),
-          image: DecorationImage(
-            image: const AssetImage('assets/images/world_map.png'), // Replace with your image path
-            fit: BoxFit.cover,
-            opacity: 0.09,
-            colorFilter: theme.brightness == Brightness.dark
-                ? ColorFilter.mode(Colors.white.withValues(alpha: .15), BlendMode.srcIn) //
-                : ColorFilter.mode(
-                    Colors.grey.withValues(alpha: 1),
-                    BlendMode.srcATop,
-                  ), // Apply white tint in dark mode
-          ),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 600, // Set the maximum width here
-                ),
-                child: CustomScrollView(
-                  slivers: [
-                    // switch (activeProfile) {
-                    // AsyncData(value: final profile?) =>
-                    MultiSliver(
-                      children: [
-                        // const Gap(100),
-                        switch (activeProfile) {
-                          AsyncData(value: final profile?) => ProfileTile(
-                            profile: profile,
-                            isMain: true,
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          ),
-                          _ => const Text(""),
-                        },
-                        const SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [ConnectionButton(), ActiveProxyDelayIndicator()],
-                                ),
-                              ),
-                              ActiveProxyFooter(),
-                              Gap(32),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    // AsyncData() => switch (hasAnyProfile) {
-                    //     AsyncData(value: true) => const EmptyActiveProfileHomeBody(),
-                    //     _ => const EmptyProfilesHomeBody(),
-                    //   },
-                    // AsyncError(:final error) => SliverErrorBodyPlaceholder(t.presentShortError(error)),
-                    // _ => const SliverToBoxAdapter(),
-                    // },
-                  ],
-                ),
+      body: Stack(
+        children: [
+          // the page keeps a quiet depth of its own under the hero
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: theme.brightness == Brightness.dark
+                    ? RadialGradient(
+                        center: const Alignment(0, -.55),
+                        radius: 1.15,
+                        colors: [
+                          Colors.white.withValues(alpha: .045),
+                          Colors.white.withValues(alpha: .012),
+                          Colors.white.withValues(alpha: 0),
+                        ],
+                        stops: const [0, .55, 1],
+                      )
+                    : RadialGradient(
+                        center: const Alignment(0, -.55),
+                        radius: 1.2,
+                        colors: [
+                          const Color(0xFF5B79FF).withValues(alpha: .10),
+                          const Color(0xFF5B79FF).withValues(alpha: .025),
+                          const Color(0xFF5B79FF).withValues(alpha: 0),
+                        ],
+                        stops: const [0, .55, 1],
+                      ),
               ),
             ),
-            if (ref.watch(hasAnyProfileProvider).value ?? false)
-              Positioned(
-                right: 0,
-                left: 0,
-                bottom: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Material(
-                      color: theme.colorScheme.primaryContainer,
+          ),
+          if (hasAnyProfile == false)
+            SafeArea(
+              child: Center(
+                child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: const HomeEmptyView()),
+              ),
+            )
+          else
+            SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 56),
+                // phone-first: the hero keeps its width on a wide desktop window too
+                children: [
+                  Center(
+                    child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 620), child: const HomeHero()),
+                  ),
+                ],
+              ),
+            ),
+          if (hasAnyProfile ?? false)
+            Positioned(
+              right: 0,
+              left: 0,
+              bottom: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Material(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                    child: InkWell(
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
                       ),
-                      child: InkWell(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                        onTap: () => ref.read(bottomSheetsNotifierProvider.notifier).showQuickSettings(),
-                        child: Container(
-                          height: 32,
-                          padding: const EdgeInsetsDirectional.only(start: 16, end: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(t.pages.home.quickSettings),
-                              const Gap(4),
-                              const Icon(Icons.arrow_drop_up_rounded, size: 16),
-                            ],
-                          ),
+                      onTap: () => ref.read(bottomSheetsNotifierProvider.notifier).showQuickSettings(),
+                      child: Container(
+                        height: 32,
+                        padding: const EdgeInsetsDirectional.only(start: 16, end: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(t.pages.home.quickSettings),
+                            const Gap(4),
+                            const Icon(Icons.arrow_drop_up_rounded, size: 16),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
