@@ -455,6 +455,25 @@ class HiddifyCoreService with InfraLogger {
     // yield* core.bgClient.outboundsInfo(Empty()).throttleTime(const Duration(seconds: 4), leading: false, trailing: true).map((event) => event.items.isEmpty ? null : event.items.first);
   }
 
+  /// Every group with all of its members, so a caller can see each server's own
+  /// ping. [watchActiveGroups] holds only the selection, which is not enough to
+  /// pick the next alive server by priority.
+  Stream<OutboundGroupList> watchAllGroups() async* {
+    loggy.debug("watching all groups");
+
+    if (!core.isInitialized()) {
+      loggy.debug("core is not initialized, returning empty group stream");
+      return;
+    }
+
+    try {
+      yield* core.bgClient.outboundsInfo(Empty()).cancelOnUnsubscribe;
+    } catch (e) {
+      loggy.error("error watching all groups: $e");
+      rethrow;
+    }
+  }
+
   Stream<OutboundGroupList> watchActiveGroups() async* {
     loggy.info("watching active groups");
 

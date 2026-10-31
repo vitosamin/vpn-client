@@ -116,6 +116,10 @@
       "unknownIp": "Unknown IP",
       "checkingIp": "Checking IP…",
       "switchFailed": "Couldn’t switch to this proxy. Try again.",
+      "priorityAuto": "auto",
+      "priorityFailover": "failover",
+      "priorityFailoverToast": "“${server}” is not responding, switched to “${target}”",
+      "priorityRecoveryToast": "“${server}” is answering again, switched back to it",
       "sortOptions": {
         "unsorted": "Default",
         "name": "Alphabetically",
