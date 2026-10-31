@@ -118,8 +118,7 @@
       "switchFailed": "Couldn’t switch to this proxy. Try again.",
       "priorityAuto": "auto",
       "priorityFailover": "failover",
-      "priorityFailoverToast": "“${server}” is not responding, switched to “${target}”",
-      "priorityRecoveryToast": "“${server}” is answering again, switched back to it",
+      "priorityFailoverToast": "“${server}” is unreachable, switching to “${target}”",
       "sortOptions": {
         "unsorted": "Default",
         "name": "Alphabetically",

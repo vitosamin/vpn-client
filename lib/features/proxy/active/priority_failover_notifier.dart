@@ -82,17 +82,16 @@ class AllProxiesNotifier extends _$AllProxiesNotifier with AppLogger {
   ProxyRepository get _repo => ref.read(proxyRepositoryProvider);
 }
 
-/// Keeps the first alive server by subscription priority active, fails over to
-/// the next alive one when it stops answering, and returns to a recovered
-/// higher-priority one with hysteresis, so two servers cannot pull the traffic
-/// back and forth every few seconds.
+/// Keeps the first alive server by subscription priority active and moves the
+/// traffic only when that server stops answering: no automatic return to a
+/// higher-priority or faster one, so servers do not change back and forth.
 ///
 /// The decision rules live in [PrioritySelector], which is pure and unit
 /// tested; this notifier only feeds it snapshots, probes the servers and
 /// carries the decision out through `SelectOutbound`.
 @Riverpod(keepAlive: true)
 class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLogger {
-  /// How often the active server (and a recovered candidate) is pinged and the
+  /// How often the active server (and another server in turn) is pinged and the
   /// decision is re-evaluated.
   static const probeInterval = Duration(seconds: 15);
 
@@ -104,13 +103,14 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
   Timer? _ticker;
   bool _connected = false;
   bool _initialProbed = false;
+  bool _outageAnnounced = false;
   String? _profileId;
   List<PriorityServer> _servers = const [];
   String? _pendingTag;
   DateTime? _pendingSince;
   bool _switching = false;
   int _probeCursor = 0;
-  int _higherProbeCursor = 0;
+  int _otherProbeCursor = 0;
 
   @override
   PriorityAutoSelectStatus build() {
@@ -236,8 +236,9 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     _pendingSince = null;
     _switching = false;
     _initialProbed = false;
+    _outageAnnounced = false;
     _probeCursor = 0;
-    _higherProbeCursor = 0;
+    _otherProbeCursor = 0;
   }
 
   void _startTicker() {
@@ -259,9 +260,9 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     if (servers.isNotEmpty) _servers = servers;
   }
 
-  /// Pings the active server, and one higher-priority server that is down (in
-  /// turn, so a recovered one is noticed and an unreachable one does not hide
-  /// the rest). Without an active server yet, it probes the servers in turn.
+  /// Pings the active server, plus one other server in turn, so the next live
+  /// server is known when the active one dies and no switch is made blindly.
+  /// Without an active server yet, it probes the servers in turn.
   Future<void> _probeNext() async {
     if (_servers.isEmpty) return;
     final currentTag = _selector.currentTag;
@@ -274,13 +275,13 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     }
 
     unawaited(_probe(_servers[currentIndex].tag));
-    final down = [
-      for (var i = 0; i < currentIndex; i++)
-        if (!ConnectionConst.isValidDelay(_servers[i].delay)) _servers[i].tag,
+    final others = [
+      for (var i = 0; i < _servers.length; i++)
+        if (i != currentIndex) _servers[i].tag,
     ];
-    if (down.isEmpty) return;
-    unawaited(_probe(down[_higherProbeCursor % down.length]));
-    _higherProbeCursor++;
+    if (others.isEmpty) return;
+    unawaited(_probe(others[_otherProbeCursor % others.length]));
+    _otherProbeCursor++;
   }
 
   /// Pings every server once after a connection, so the first choice does not
@@ -303,7 +304,18 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     }
     if (_servers.isEmpty) return;
     final decision = _selector.evaluate(_servers, now: DateTime.now());
+    if (_servers.any((server) => ConnectionConst.isValidDelay(server.delay))) {
+      // At least one server answers again; a later outage is announced anew.
+      _outageAnnounced = false;
+    }
     if (!decision.shouldSwitch) {
+      if (decision.hold == PriorityHoldReason.noAliveServer &&
+          _selector.currentTag != null &&
+          !_outageAnnounced) {
+        // Every server is down: say so once and keep the traffic where it is
+        // instead of hopping between dead servers.
+        _announceNoConnection();
+      }
       _refreshStatus();
       return;
     }
@@ -326,7 +338,18 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     _selector.switchedTo(target, DateTime.now());
     _pendingTag = target;
     _refreshStatus();
-    _notify(reason, previous: previous, target: target);
+    if (reason == PrioritySwitchReason.failover && previous != null) {
+      _notifyFailover(previous: previous, target: target);
+    }
+  }
+
+  /// Announces a total outage once per outage, as the requirement asks: the
+  /// home card also shows the core's own "no connection" state.
+  void _announceNoConnection() {
+    _outageAnnounced = true;
+    final t = ref.read(translationsProvider).valueOrNull;
+    if (t == null) return;
+    ref.read(inAppNotificationControllerProvider).showErrorToast(t.connection.noAvailableProxies);
   }
 
   void _refreshStatus() {
@@ -341,21 +364,13 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     return PriorityAutoSelectStatus.following(activeTag: tag, priority: index + 1, total: _servers.length);
   }
 
-  void _notify(PrioritySwitchReason reason, {String? previous, required String target}) {
+  void _notifyFailover({required String previous, required String target}) {
     final t = ref.read(translationsProvider).valueOrNull;
     if (t == null) return;
-    final notifications = ref.read(inAppNotificationControllerProvider);
-    final targetName = sanitizedTagName(target);
-    switch (reason) {
-      case PrioritySwitchReason.initial:
-        break;
-      case PrioritySwitchReason.failover:
-        if (previous == null) break;
-        notifications.showInfoToast(
-          t.pages.proxies.priorityFailoverToast(server: sanitizedTagName(previous), target: targetName),
+    ref
+        .read(inAppNotificationControllerProvider)
+        .showInfoToast(
+          t.pages.proxies.priorityFailoverToast(server: sanitizedTagName(previous), target: sanitizedTagName(target)),
         );
-      case PrioritySwitchReason.recovery:
-        notifications.showInfoToast(t.pages.proxies.priorityRecoveryToast(server: targetName));
-    }
   }
 }

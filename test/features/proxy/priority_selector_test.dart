@@ -8,6 +8,8 @@ import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 
 const _alive = 120;
 const _alive2 = 400;
+const _slow = 5000;
+const _fast = 20;
 const _dead = 65000; // a url-test timeout, as the core reports it
 const _unknown = 0; // "not measured yet", also not alive
 
@@ -24,23 +26,21 @@ final _t0 = DateTime(2026, 1, 1, 12);
 
 DateTime _at(int seconds) => _t0.add(Duration(seconds: seconds));
 
-PrioritySelector _selector({
-  int failThreshold = 2,
-  int recoveryThreshold = 2,
-  Duration switchCooldown = const Duration(seconds: 20),
-  Duration recoveryCooldown = const Duration(seconds: 60),
-}) => PrioritySelector(
-  failThreshold: failThreshold,
-  recoveryThreshold: recoveryThreshold,
-  switchCooldown: switchCooldown,
-  recoveryCooldown: recoveryCooldown,
-);
+PrioritySelector _selector({Duration switchCooldown = const Duration(seconds: 45)}) =>
+    PrioritySelector(switchCooldown: switchCooldown);
+
+/// Three failed evaluations in a row, as the notifier makes them every 15 s.
+void _failThree(PrioritySelector selector, List<(String, int)> current) {
+  for (final seconds in [15, 30, 45]) {
+    selector.evaluate(_servers(current), now: _at(seconds));
+  }
+}
 
 void main() {
   group("initial selection", () {
     test("picks the first alive server, not the fastest one", () {
       final selector = _selector();
-      final decision = selector.evaluate(_servers([(_a, _alive2), (_b, _alive), (_c, 50)]), now: _t0);
+      final decision = selector.evaluate(_servers([(_a, _alive2), (_b, _alive), (_c, _fast)]), now: _t0);
       expect(decision.targetTag, _a);
       expect(decision.reason, PrioritySwitchReason.initial);
     });
@@ -67,22 +67,90 @@ void main() {
       final selector = _selector();
       expect(selector.evaluate(_servers([(_a, _alive)]), now: _t0).targetTag, _a);
       selector.switchedTo(_a, _t0);
-      expect(selector.evaluate(_servers([(_a, _alive)]), now: _at(15)).hold, PriorityHoldReason.alreadyBest);
+      expect(selector.evaluate(_servers([(_a, _alive)]), now: _at(15)).hold, PriorityHoldReason.activeAlive);
     });
   });
 
-  group("failover", () {
-    test("moves to the next alive server only after the fail threshold", () {
+  group("no automatic switching", () {
+    test("stays on the active server while a higher-priority one answers again", () {
+      final selector = _selector();
+      // A is dead at the start, so B is the first alive server.
+      selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _t0);
+      selector.switchedTo(_b, _t0);
+
+      // A recovers, but the traffic does not move back: only availability moves it.
+      for (final seconds in [15, 30, 60, 120, 300]) {
+        final decision = selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(seconds));
+        expect(decision.shouldSwitch, isFalse);
+        expect(decision.hold, PriorityHoldReason.activeAlive);
+      }
+      expect(selector.currentTag, _b);
+    });
+
+    test("does not move to a faster server", () {
+      final selector = _selector();
+      selector.evaluate(_servers([(_a, _slow), (_b, _fast)]), now: _t0);
+      selector.switchedTo(_a, _t0);
+
+      for (final seconds in [15, 30, 60, 120]) {
+        expect(selector.evaluate(_servers([(_a, _slow), (_b, _fast)]), now: _at(seconds)).shouldSwitch, isFalse);
+      }
+    });
+
+    test("does not move while the active server answers, whatever happens around it", () {
+      final selector = _selector();
+      selector.evaluate(_servers([(_a, _alive), (_b, _alive), (_c, _alive)]), now: _t0);
+      selector.switchedTo(_b, _t0);
+
+      for (final seconds in [15, 30, 45, 90, 180]) {
+        final decision = selector.evaluate(_servers([(_a, _alive), (_b, _alive), (_c, _alive)]), now: _at(seconds));
+        expect(decision.hold, PriorityHoldReason.activeAlive);
+      }
+    });
+  });
+
+  group("failover when the active server is unavailable", () {
+    test("switches after three failed evaluations in a row", () {
       final selector = _selector();
       selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
       selector.switchedTo(_a, _t0);
 
-      final first = selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(15));
-      expect(first.hold, PriorityHoldReason.waitingForFailover);
+      expect(
+        selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(15)).hold,
+        PriorityHoldReason.waitingForFailover,
+      );
+      expect(
+        selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(30)).hold,
+        PriorityHoldReason.waitingForFailover,
+      );
+      final third = selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(45));
+      expect(third.targetTag, _b);
+      expect(third.reason, PrioritySwitchReason.failover);
+    });
 
-      final second = selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(30));
-      expect(second.targetTag, _b);
-      expect(second.reason, PrioritySwitchReason.failover);
+    test("a short loss does not move the traffic", () {
+      final selector = _selector();
+      selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
+      selector.switchedTo(_a, _t0);
+
+      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(15)).shouldSwitch, isFalse);
+      // The server answers again on the next step: the streak resets.
+      expect(
+        selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(30)).hold,
+        PriorityHoldReason.activeAlive,
+      );
+      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(45)).shouldSwitch, isFalse);
+      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(60)).shouldSwitch, isFalse);
+    });
+
+    test("takes the first alive server by priority, not the fastest", () {
+      final selector = _selector();
+      selector.evaluate(_servers([(_a, _alive), (_b, _alive), (_c, _alive)]), now: _t0);
+      selector.switchedTo(_a, _t0);
+
+      _failThree(selector, [(_a, _dead), (_b, _slow), (_c, _fast)]);
+      final decision = selector.evaluate(_servers([(_a, _dead), (_b, _slow), (_c, _fast)]), now: _at(60));
+      expect(decision.targetTag, _b);
     });
 
     test("skips the dead servers between the active one and the first alive one", () {
@@ -90,113 +158,67 @@ void main() {
       selector.evaluate(_servers([(_a, _alive), (_b, _dead), (_c, _dead)]), now: _t0);
       selector.switchedTo(_a, _t0);
 
-      expect(selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(15)).shouldSwitch, isFalse);
-      expect(selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(30)).targetTag, _c);
+      expect(
+        selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(15)).shouldSwitch,
+        isFalse,
+      );
+      expect(
+        selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(30)).shouldSwitch,
+        isFalse,
+      );
+      expect(selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(45)).targetTag, _c);
     });
 
-    test("a single failed ping does not move the traffic", () {
+    test("switches to a recovered higher-priority server only because the active one died", () {
+      final selector = _selector();
+      // A is dead at the start, so B is the first alive server.
+      selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _t0);
+      selector.switchedTo(_b, _t0);
+
+      // A recovers: no return while B answers.
+      expect(selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(15)).shouldSwitch, isFalse);
+      // B dies: after three failed evaluations the traffic goes to the first alive server, A.
+      expect(selector.evaluate(_servers([(_a, _alive), (_b, _dead)]), now: _at(30)).shouldSwitch, isFalse);
+      expect(selector.evaluate(_servers([(_a, _alive), (_b, _dead)]), now: _at(45)).shouldSwitch, isFalse);
+      final decision = selector.evaluate(_servers([(_a, _alive), (_b, _dead)]), now: _at(60));
+      expect(decision.targetTag, _a);
+      expect(decision.reason, PrioritySwitchReason.failover);
+    });
+
+    test("counts an unmeasured ping as unavailable", () {
       final selector = _selector();
       selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
       selector.switchedTo(_a, _t0);
 
-      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(15)).shouldSwitch, isFalse);
-      // the server answers again on the next step: the streak resets
-      expect(selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(30)).hold, PriorityHoldReason.alreadyBest);
-      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(45)).shouldSwitch, isFalse);
+      _failThree(selector, [(_a, _unknown), (_b, _alive)]);
+      expect(selector.evaluate(_servers([(_a, _unknown), (_b, _alive)]), now: _at(60)).targetTag, _b);
     });
 
     test("keeps the active server when every server is down", () {
       final selector = _selector();
       selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
       selector.switchedTo(_a, _t0);
-      selector.evaluate(_servers([(_a, _dead), (_b, _dead)]), now: _at(15));
-      final decision = selector.evaluate(_servers([(_a, _dead), (_b, _dead)]), now: _at(30));
-      expect(decision.shouldSwitch, isFalse);
-      expect(decision.hold, PriorityHoldReason.noAliveServer);
+
+      for (final seconds in [15, 30, 45, 60, 120]) {
+        final decision = selector.evaluate(_servers([(_a, _dead), (_b, _dead)]), now: _at(seconds));
+        expect(decision.shouldSwitch, isFalse);
+        expect(decision.hold, PriorityHoldReason.noAliveServer);
+      }
     });
 
     test("does not switch again inside the cooldown", () {
       final selector = _selector(switchCooldown: const Duration(seconds: 120));
       selector.evaluate(_servers([(_a, _alive), (_b, _alive), (_c, _alive)]), now: _t0);
       selector.switchedTo(_a, _t0);
-      selector.evaluate(_servers([(_a, _dead), (_b, _alive), (_c, _alive)]), now: _at(15));
-      selector.evaluate(_servers([(_a, _dead), (_b, _alive), (_c, _alive)]), now: _at(30));
-      selector.switchedTo(_b, _at(30));
 
-      // B dies at once, but the cooldown since the switch keeps the traffic on it
-      selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(45));
-      final decision = selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(60));
+      // Three failed evaluations, but the cooldown since the first switch has not passed yet.
+      _failThree(selector, [(_a, _dead), (_b, _alive), (_c, _alive)]);
+      var decision = selector.evaluate(_servers([(_a, _dead), (_b, _alive), (_c, _alive)]), now: _at(60));
       expect(decision.shouldSwitch, isFalse);
       expect(decision.hold, PriorityHoldReason.cooldown);
-      // after the cooldown the failover goes through
-      expect(selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(160)).targetTag, _c);
-    });
-  });
 
-  group("recovery to a higher priority", () {
-    test("returns to the recovered server after the streak and the cooldown", () {
-      final selector = _selector();
-      selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
-      selector.switchedTo(_a, _t0);
-      // A fails, the traffic goes to B
-      selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(15));
-      selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(30));
-      selector.switchedTo(_b, _at(30));
-
-      // A answers again; two steps are needed, and the cooldown holds it for 60s more
-      expect(
-        selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(45)).hold,
-        PriorityHoldReason.waitingForRecovery,
-      );
-      expect(
-        selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(60)).hold,
-        PriorityHoldReason.cooldown,
-      );
-      final back = selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(90));
-      expect(back.targetTag, _a);
-      expect(back.reason, PrioritySwitchReason.recovery);
-    });
-
-    test("a recovered server is not taken when the active one still answers and is above it", () {
-      final selector = _selector();
-      selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
-      selector.switchedTo(_a, _t0);
-      for (var i = 1; i <= 10; i++) {
-        final decision = selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(15 * i));
-        expect(decision.hold, PriorityHoldReason.alreadyBest);
-      }
-    });
-
-    test("keeps the fallback when the recovered server flaps", () {
-      final selector = _selector(recoveryThreshold: 3, recoveryCooldown: const Duration(seconds: 30));
-      selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
-      selector.switchedTo(_a, _t0);
-      selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(15));
-      selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(30));
-      selector.switchedTo(_b, _at(30));
-
-      // A jumps up and down: the recovery streak resets each time it dies
-      expect(selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(45)).shouldSwitch, isFalse);
-      expect(selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(60)).shouldSwitch, isFalse);
-      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(75)).shouldSwitch, isFalse);
-      expect(selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(90)).shouldSwitch, isFalse);
-      expect(selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(105)).shouldSwitch, isFalse);
-      // three steady steps and the cooldown have passed: back to A
-      expect(selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(120)).targetTag, _a);
-    });
-
-    test("returns to the first alive recovered server, not a dead one above it", () {
-      final selector = _selector(recoveryCooldown: const Duration(seconds: 30));
-      selector.evaluate(_servers([(_a, _dead), (_b, _alive), (_c, _alive)]), now: _t0);
-      selector.switchedTo(_b, _t0);
-      // C takes over when B dies
-      selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(15));
-      selector.evaluate(_servers([(_a, _dead), (_b, _dead), (_c, _alive)]), now: _at(30));
-      selector.switchedTo(_c, _at(30));
-
-      // B recovers, A stays dead: B is the first alive and the target
-      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive), (_c, _alive)]), now: _at(45)).shouldSwitch, isFalse);
-      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive), (_c, _alive)]), now: _at(60)).targetTag, _b);
+      decision = selector.evaluate(_servers([(_a, _dead), (_b, _alive), (_c, _alive)]), now: _at(120));
+      expect(decision.targetTag, _b);
     });
   });
 
@@ -207,8 +229,8 @@ void main() {
       selector.switchedTo(_a, _t0);
       selector.userPicked(_b, _at(5));
 
-      for (var i = 1; i <= 10; i++) {
-        final decision = selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(15 * i));
+      for (final seconds in [15, 30, 60, 120]) {
+        final decision = selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(seconds));
         expect(decision.hold, PriorityHoldReason.manualPick);
       }
       expect(selector.manualTag, _b);
@@ -220,11 +242,19 @@ void main() {
       selector.switchedTo(_a, _t0);
       selector.userPicked(_b, _at(5));
 
-      expect(selector.evaluate(_servers([(_a, _alive), (_b, _dead)]), now: _at(30)).shouldSwitch, isFalse);
-      final decision = selector.evaluate(_servers([(_a, _alive), (_b, _dead)]), now: _at(45));
+      expect(
+        selector.evaluate(_servers([(_a, _alive), (_b, _dead)]), now: _at(20)).hold,
+        PriorityHoldReason.waitingForFailover,
+      );
+      expect(
+        selector.evaluate(_servers([(_a, _alive), (_b, _dead)]), now: _at(35)).hold,
+        PriorityHoldReason.waitingForFailover,
+      );
+      final decision = selector.evaluate(_servers([(_a, _alive), (_b, _dead)]), now: _at(50));
       expect(decision.targetTag, _a);
-      // the automatic pick is not a manual one any more
-      selector.switchedTo(_a, _at(45));
+      expect(decision.reason, PrioritySwitchReason.failover);
+
+      selector.switchedTo(_a, _at(50));
       expect(selector.manualTag, isNull);
     });
 
@@ -242,6 +272,29 @@ void main() {
     });
   });
 
+  group("profile changes", () {
+    test("a vanished active server starts the selection over", () {
+      final selector = _selector();
+      selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
+      selector.switchedTo(_a, _t0);
+
+      final decision = selector.evaluate(_servers([(_b, _alive)]), now: _at(15));
+      expect(decision.targetTag, _b);
+      expect(decision.reason, PrioritySwitchReason.initial);
+    });
+
+    test("reset makes the next step pick the first alive server again", () {
+      final selector = _selector();
+      selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
+      selector.switchedTo(_b, _t0);
+      selector.reset();
+      expect(selector.currentTag, isNull);
+
+      final decision = selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(15));
+      expect(decision.targetTag, _a);
+      expect(decision.reason, PrioritySwitchReason.initial);
+    });
+  });
 
   group("servers from the core list", () {
     OutboundGroup group(String tag, List<OutboundInfo> items) => OutboundGroup(tag: tag, items: items);
@@ -271,30 +324,6 @@ void main() {
     test("returns nothing when the main selector is missing", () {
       final list = OutboundGroupList(items: [group(lowestGroupTag, [server(_a, 10)])]);
       expect(priorityServersOf(list), isEmpty);
-    });
-  });
-
-  group("profile changes", () {
-    test("a vanished active server starts the selection over", () {
-      final selector = _selector();
-      selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
-      selector.switchedTo(_a, _t0);
-
-      final decision = selector.evaluate(_servers([(_b, _alive)]), now: _at(15));
-      expect(decision.targetTag, _b);
-      expect(decision.reason, PrioritySwitchReason.initial);
-    });
-
-    test("reset makes the next step pick the first alive server again", () {
-      final selector = _selector();
-      selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
-      selector.switchedTo(_b, _t0);
-      selector.reset();
-      expect(selector.currentTag, isNull);
-
-      final decision = selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _at(15));
-      expect(decision.targetTag, _a);
-      expect(decision.reason, PrioritySwitchReason.initial);
     });
   });
 }

@@ -14,7 +14,9 @@ class PriorityServer {
   final String tag;
 
   /// The last url-test delay in ms: `0` is "not measured yet", a value of
-  /// [ConnectionConst.maxDelay] or more is a timeout.
+  /// [ConnectionConst.maxDelay] or more is a timeout. The delay is only read as
+  /// "alive or not", never compared between servers: a faster server does not
+  /// take the traffic away.
   final int delay;
 
   @override
@@ -28,9 +30,6 @@ enum PrioritySwitchReason {
 
   /// The active server stopped answering; the next alive one in priority order takes over.
   failover,
-
-  /// A server with a higher priority answers again; the traffic goes back to it.
-  recovery,
 }
 
 /// Why the selector keeps the active server as it is.
@@ -38,11 +37,13 @@ enum PriorityHoldReason {
   /// The core has not reported any server yet.
   noServers,
 
-  /// Every server is down (or still untested); the core's own connectivity tells the user.
+  /// Every server is down (or still untested); the core's own connectivity tells
+  /// the user, and the traffic stays where it is instead of hopping around.
   noAliveServer,
 
-  /// The active server is the first alive one: nothing better exists.
-  alreadyBest,
+  /// The active server answers: whatever else is alive, the traffic stays on it.
+  /// There is no automatic return to a higher-priority server.
+  activeAlive,
 
   /// The user picked this server by hand; automatic switching leaves it alone until it fails.
   manualPick,
@@ -50,10 +51,7 @@ enum PriorityHoldReason {
   /// The active server looks down, but not for long enough yet (hysteresis).
   waitingForFailover,
 
-  /// A higher-priority server answers again, but not for long enough yet (hysteresis).
-  waitingForRecovery,
-
-  /// A switch happened too recently; waiting protects against flapping.
+  /// A switch happened too recently; waiting protects against a series of switches.
   cooldown,
 
   /// The user took control (picked a group, "fastest", …) for the rest of the connection.
@@ -84,8 +82,7 @@ class PriorityDecision {
 }
 
 /// Decides which server the main selector should use: the first alive one in
-/// subscription order, with failover to the next alive server and a hysteretic
-/// return to a recovered higher-priority one.
+/// subscription order, and a switch only when the active server is unavailable.
 ///
 /// The class is pure: it only reads the server list and the clock, and never
 /// touches gRPC, so all of its rules are covered by unit tests. The notifier
@@ -93,52 +90,41 @@ class PriorityDecision {
 ///
 /// Rules:
 /// * nothing chosen yet → the first alive server ([PrioritySwitchReason.initial]);
-/// * the active server is the first alive one → keep it, reset the counters;
+/// * the active server answers → keep it; there is **no** automatic return to a
+///   higher-priority (or faster) server, so two servers cannot pull the traffic
+///   back and forth;
 /// * the active server is down for [failThreshold] evaluations in a row → switch
-///   to the first alive server (the next one by priority, or a recovered one
-///   above it);
-/// * a server above the active one answers again for [recoveryThreshold]
-///   evaluations in a row, and [recoveryCooldown] has passed since the last
-///   switch → go back to it (the first alive one, so the result is stable);
-/// * [switchCooldown] must pass between any two automatic switches, which —
-///   together with the streaks — keeps two flapping servers from pulling the
-///   traffic back and forth every few seconds;
+///   to the first alive server by subscription order (a recovered higher-priority
+///   one included: the switch is still caused by the active one being dead);
+/// * [switchCooldown] must pass between any two automatic switches, so a chain of
+///   dead servers does not turn into a burst of switches;
+/// * every server is down → keep the active one and let the core report "no
+///   connection"; do not hop between dead servers;
 /// * a server the user picked by hand is never replaced while it answers; a
 ///   group pick (or "fastest") suspends automatic switching until the next
 ///   connection.
 class PrioritySelector {
   PrioritySelector({
     bool Function(int delay)? isAlive,
-    this.failThreshold = 2,
-    this.recoveryThreshold = 3,
-    this.switchCooldown = const Duration(seconds: 20),
-    this.recoveryCooldown = const Duration(seconds: 60),
+    this.failThreshold = 3,
+    this.switchCooldown = const Duration(seconds: 45),
   }) : assert(failThreshold > 0),
-       assert(recoveryThreshold > 0),
        _isAlive = isAlive ?? ConnectionConst.isValidDelay;
 
   final bool Function(int delay) _isAlive;
 
-  /// How many evaluations in a row the active server must look down before
-  /// the traffic moves away.
+  /// How many evaluations in a row the active server must look down before the
+  /// traffic moves away. With the notifier's 15-second steps this is ~45 s, so a
+  /// short packet loss or a slow answer does not cause a switch.
   final int failThreshold;
-
-  /// How many evaluations in a row a higher-priority server must look alive
-  /// before the traffic goes back to it.
-  final int recoveryThreshold;
 
   /// The least time between two automatic switches.
   final Duration switchCooldown;
-
-  /// The least time after a switch before a recovered higher-priority server
-  /// can pull the traffic back.
-  final Duration recoveryCooldown;
 
   String? _currentTag;
   String? _manualTag;
   bool _suspended = false;
   int _invalidStreak = 0;
-  int _recoveryStreak = 0;
   DateTime? _lastSwitchAt;
 
   /// The server the selector keeps active; null until the first switch.
@@ -156,7 +142,6 @@ class PrioritySelector {
     _manualTag = null;
     _suspended = false;
     _invalidStreak = 0;
-    _recoveryStreak = 0;
     _lastSwitchAt = null;
   }
 
@@ -166,7 +151,6 @@ class PrioritySelector {
     _currentTag = tag;
     _manualTag = null;
     _invalidStreak = 0;
-    _recoveryStreak = 0;
     _lastSwitchAt = now;
   }
 
@@ -177,7 +161,6 @@ class PrioritySelector {
     _manualTag = tag;
     _suspended = false;
     _invalidStreak = 0;
-    _recoveryStreak = 0;
     _lastSwitchAt = now;
   }
 
@@ -187,7 +170,6 @@ class PrioritySelector {
     _suspended = true;
     _manualTag = null;
     _invalidStreak = 0;
-    _recoveryStreak = 0;
   }
 
   /// One step of the state machine.
@@ -206,7 +188,6 @@ class PrioritySelector {
       _currentTag = null;
       _manualTag = null;
       _invalidStreak = 0;
-      _recoveryStreak = 0;
       if (firstAliveIndex < 0) return const PriorityDecision.keep(PriorityHoldReason.noAliveServer);
       return PriorityDecision.change(servers[firstAliveIndex].tag, PrioritySwitchReason.initial);
     }
@@ -214,46 +195,29 @@ class PrioritySelector {
     final currentAlive = _isAlive(servers[currentIndex].delay);
 
     // A manual pick is left alone while it answers; a dead one fails over below.
-    final manualAlive = _manualTag == _currentTag;
-    if (manualAlive && currentAlive) {
+    if (_manualTag == _currentTag && currentAlive) {
       _invalidStreak = 0;
-      _recoveryStreak = 0;
       return const PriorityDecision.keep(PriorityHoldReason.manualPick);
     }
 
     if (currentAlive) {
+      // The traffic never leaves a server that answers, even when a higher
+      // priority or a faster one is available: only unavailability moves it.
       _invalidStreak = 0;
-      if (firstAliveIndex == currentIndex) {
-        // Already the best alive server; nothing to recover.
-        _recoveryStreak = 0;
-        return const PriorityDecision.keep(PriorityHoldReason.alreadyBest);
-      }
-
-      // A higher-priority server answers again: wait for a steady result and
-      // for the cooldown, then go back.
-      _recoveryStreak++;
-      if (_recoveryStreak < recoveryThreshold) {
-        return const PriorityDecision.keep(PriorityHoldReason.waitingForRecovery);
-      }
-      if (_inCooldown(now, recoveryCooldown)) {
-        return const PriorityDecision.keep(PriorityHoldReason.cooldown);
-      }
-      return PriorityDecision.change(servers[firstAliveIndex].tag, PrioritySwitchReason.recovery);
+      return const PriorityDecision.keep(PriorityHoldReason.activeAlive);
     }
 
     // The active server does not answer.
-    _recoveryStreak = 0;
     _invalidStreak++;
     if (firstAliveIndex < 0) return const PriorityDecision.keep(PriorityHoldReason.noAliveServer);
     if (_invalidStreak < failThreshold) return const PriorityDecision.keep(PriorityHoldReason.waitingForFailover);
-    if (_inCooldown(now, switchCooldown)) return const PriorityDecision.keep(PriorityHoldReason.cooldown);
-    final reason = firstAliveIndex < currentIndex ? PrioritySwitchReason.recovery : PrioritySwitchReason.failover;
-    return PriorityDecision.change(servers[firstAliveIndex].tag, reason);
+    if (_inCooldown(now)) return const PriorityDecision.keep(PriorityHoldReason.cooldown);
+    return PriorityDecision.change(servers[firstAliveIndex].tag, PrioritySwitchReason.failover);
   }
 
-  bool _inCooldown(DateTime now, Duration window) {
+  bool _inCooldown(DateTime now) {
     final last = _lastSwitchAt;
-    return last != null && now.difference(last) < window;
+    return last != null && now.difference(last) < switchCooldown;
   }
 }
 
