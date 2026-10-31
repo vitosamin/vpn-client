@@ -15,8 +15,9 @@ abstract class Constants {
   static const githubLatestReleaseUrl = "https://github.com/vitosamin/vpn-client/releases/latest";
   static const appCastUrl = "https://raw.githubusercontent.com/vitosamin/vpn-client/main/appcast.xml";
 
-  /// The owner's Telegram group. TODO(branding): replace with the real group link.
-  static const telegramGroupUrl = "https://t.me/vitosamintm";
+  /// The owner's Telegram group: a private-group invite link. Change it here only — the home
+  /// tile, the empty home and the About row all read this constant.
+  static const telegramGroupUrl = "https://t.me/+0PsfppRewaRiOTYy";
   // TODO(branding): our own site pages, the domain is already used by the service.
   static const privacyPolicyUrl = "https://vitosamintm.ru/privacy";
   static const termsAndConditionsUrl = "https://vitosamintm.ru/terms";
