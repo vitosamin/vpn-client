@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Hiddify",
+    "appTitle": "Vitosamin",
     "start": "Começar",
     "version": "Versão",
     "ok": "OK",
@@ -98,7 +98,7 @@
   "intro": {
     "banner": "Tudo o que você precisa para uma internet sem restrições",
     "termsAndPolicyCaution(rich)": "Ao continuar, você concorda com os ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Feito com ❤️ por Hiddify. ${tap_source(Código aberto)} e ${tap_license(Licença)}"
+    "info(rich)": "Feito com ❤️ por Vitosamin. ${tap_source(Código aberto)} e ${tap_license(Licença)}"
   },
   "pages": {
     "home": {
@@ -689,7 +689,7 @@
       "msg": "Vamos começar. Adicione um perfil de conexão com os detalhes do seu servidor VPN.\n\nAinda não tem servidor? Sem problema. O guia abaixo mostra como criar um de graça.",
       "helpBtn": {
         "label": "Mostre-me como",
-        "url": "https://hiddify.com/manager/"
+        "url": "https://vitosamintm.ru/help"
       }
     },
     "unknownDomainsWarning": {

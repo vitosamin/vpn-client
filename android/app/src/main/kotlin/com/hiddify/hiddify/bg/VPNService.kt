@@ -93,7 +93,7 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
 //        service.fileDescriptor?.close()
 
         val builder = Builder()
-            .setSession("hiddify")
+            .setSession("Vitosamin")
             .setMtu(options.mtu)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

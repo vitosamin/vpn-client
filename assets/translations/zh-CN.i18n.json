@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Hiddify",
+    "appTitle": "Vitosamin",
     "start": "开始",
     "version": "版本",
     "ok": "确定",
@@ -98,7 +98,7 @@
   "intro": {
     "banner": "畅享无限制网络的所需一切",
     "termsAndPolicyCaution(rich)": "继续即表示您同意 ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "由 Hiddify 用 ❤️ 制作。${tap_source(开源)} 和 ${tap_license(许可证)}"
+    "info(rich)": "由 Vitosamin 用 ❤️ 制作。${tap_source(开源)} 和 ${tap_license(许可证)}"
   },
   "pages": {
     "home": {
@@ -687,7 +687,7 @@
       "msg": "让我们开始吧。添加一个包含您 VPN 服务器信息的连接配置文件。\n\n还没有服务器？没关系。下面的指南会告诉您如何免费搭建一个。",
       "helpBtn": {
         "label": "告诉我如何操作",
-        "url": "https://hiddify.com/manager/"
+        "url": "https://vitosamintm.ru/help"
       }
     },
     "unknownDomainsWarning": {

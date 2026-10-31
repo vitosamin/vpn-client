@@ -165,7 +165,7 @@ class ProfileParser with InfraLogger {
           tempFilePath,
           cancelToken: cancelToken,
           userAgent: _ref.read(ConfigOptions.useXrayCoreWhenPossible)
-              ? _httpClient.userAgent.replaceAll("HiddifyNext", "HiddifyNextX")
+              ? _httpClient.userAgent.replaceAll("Vitosamin", "VitosaminX")
               : null,
         )
         .catchError((err) {
@@ -209,7 +209,7 @@ class ProfileParser with InfraLogger {
             line.trimRight(),
             cancelToken: cancelToken,
             userAgent: _ref.read(ConfigOptions.useXrayCoreWhenPossible)
-                ? _httpClient.userAgent.replaceAll('HiddifyNext', 'HiddifyNextX')
+                ? _httpClient.userAgent.replaceAll('Vitosamin', 'VitosaminX')
                 : null,
             responseType: ResponseType.plain,
           );

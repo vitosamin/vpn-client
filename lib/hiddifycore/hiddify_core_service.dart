@@ -55,7 +55,7 @@ class HiddifyCoreService with InfraLogger {
           ref.read(inAppNotificationControllerProvider).showErrorToast(e);
         })
         .map((_) {
-          loggy.info("Hiddify-core setup done");
+          loggy.info("Core setup done");
           ref.read(coreRestartSignalProvider.notifier).restart();
         })
         .run();

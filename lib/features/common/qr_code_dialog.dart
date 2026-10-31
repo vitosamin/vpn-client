@@ -110,7 +110,7 @@ class LanSharingQrDialog extends HookConsumerWidget {
     // Null while the lookup runs. A lookup that ends without an address gets 127.0.0.1, the same
     // answer the core gives when this device has no local network.
     final ip = lookup.connectionState == ConnectionState.done ? (lookup.data ?? InternetAddress.loopbackIPv4) : null;
-    const username = 'hiddify';
+    const username = 'vitosamin';
     final port = ref.watch(ConfigOptions.mixedPort);
     final password = ref.watch(ConfigOptions.lanSharingPassword);
     final name = ip?.isLoopback ?? false ? QrCodeDialogConst.localhostProfileName : QrCodeDialogConst.lanProfileName;

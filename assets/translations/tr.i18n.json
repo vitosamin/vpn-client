@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Hiddify",
+    "appTitle": "Vitosamin",
     "start": "Başlat",
     "version": "Sürüm",
     "ok": "Tamam",
@@ -98,7 +98,7 @@
   "intro": {
     "banner": "Sınırsız bir internet için ihtiyacınız olan her şey",
     "termsAndPolicyCaution(rich)": "Devam ederek ${tap(@:pages.about.termsAndConditions)} kabul etmiş olursunuz",
-    "info(rich)": "Hiddify tarafından ❤️ ile yapıldı. ${tap_source(Açık kaynak)} ve ${tap_license(Lisans)}"
+    "info(rich)": "Vitosamin tarafından ❤️ ile yapıldı. ${tap_source(Açık kaynak)} ve ${tap_license(Lisans)}"
   },
   "pages": {
     "home": {
@@ -687,7 +687,7 @@
       "msg": "Başlayalım. VPN sunucu bilgilerinizle bir bağlantı profili ekleyin.\n\nHenüz sunucunuz yok mu? Sorun değil. Aşağıdaki rehber ücretsiz bir tane kurmayı gösteriyor.",
       "helpBtn": {
         "label": "Nasıl yapıldığını göster",
-        "url": "https://hiddify.com/manager/"
+        "url": "https://vitosamintm.ru/help"
       }
     },
     "unknownDomainsWarning": {

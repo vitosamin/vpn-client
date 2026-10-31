@@ -1,12 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="2048dp"
-    android:height="2048dp"
-    android:viewportWidth="2048"
-    android:viewportHeight="2048">
-  <group>
-    <!-- Filled rectangle -->
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
     <path
-        android:pathData="M0,0 L2048,0 L2048,2048 L0,2048 Z"
-        android:fillColor="#FFF0F3FA" />
-  </group>
+        android:fillColor="#16243D"
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
 </vector>

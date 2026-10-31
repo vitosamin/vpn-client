@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Hiddify",
+    "appTitle": "Vitosamin",
     "start": "Start",
     "version": "Version",
     "ok": "OK",
@@ -96,9 +96,9 @@
     }
   },
   "intro": {
-    "banner": "All you need for an unrestricted internet",
+    "banner": "A protected connection for your services",
     "termsAndPolicyCaution(rich)": "By continuing you agree to ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Made with ❤️ by Hiddify. ${tap_source(Open source)} and ${tap_license(License)}"
+    "info(rich)": "Made with ❤️ by the Vitosamin team. ${tap_source(Open source)} and ${tap_license(License)}"
   },
   "pages": {
     "home": {
@@ -218,7 +218,9 @@
       "sourceCode": "Source code",
       "telegramChannel": "Telegram channel",
       "termsAndConditions": "Terms and conditions",
-      "privacyPolicy": "Privacy policy"
+      "privacyPolicy": "Privacy policy",
+      "license": "License and attribution",
+      "licenseCredit": "Based on Hiddify App (hiddify/hiddify-app) under the Hiddify Extended GPLv3"
     },
     "settings": {
       "title": "Settings",
@@ -721,7 +723,7 @@
     "adminBgService": {
       "vpnNeedsAdmin": {
         "title": "Administrator permission needed",
-        "msg": "VPN mode needs a one-time administrator permission to install the Hiddify background service. After that, you can connect without another prompt.",
+        "msg": "VPN mode needs a one-time administrator permission to install the Vitosamin background service. After that, you can connect without another prompt.",
         "connectWithAdmin": "Connect with admin permission",
         "waitingTitle": "Waiting for administrator permission",
         "waitingMsg": "Allow the administrator prompt to continue. You can stop and try again later.",
@@ -750,7 +752,7 @@
       "msg": "Let’s get started. Add a connection profile with your VPN server details.\n\nNo server yet? No problem. The guide below shows how to set one up for free.",
       "helpBtn": {
         "label": "Show me how",
-        "url": "https://hiddify.com/manager/"
+        "url": "https://vitosamintm.ru/help"
       }
     },
     "unknownDomainsWarning": {
@@ -825,7 +827,7 @@
       "pickDead": "Selected proxy isn't responding",
       "hopPending": "${chain} is connecting…",
       "hopFailed": "${chain} couldn't connect",
-      "core": "Hiddify",
+      "core": "Vitosamin",
       "coreOk": "Connected: a working server was found",
       "coreTesting": "Testing the servers…",
       "coreNone": "None of the servers respond",

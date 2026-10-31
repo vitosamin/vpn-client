@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Hiddify",
+    "appTitle": "Vitosamin",
     "start": "ابدأ",
     "version": "الإصدار",
     "ok": "موافق",
@@ -104,7 +104,7 @@
   "intro": {
     "banner": "كل ما تحتاجه لإنترنت بلا قيود",
     "termsAndPolicyCaution(rich)": "بالاستمرار، أنت توافق على ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "صُنع بـ ❤️ بواسطة Hiddify. ${tap_source(مفتوح المصدر)} و${tap_license(الرخصة)}"
+    "info(rich)": "صُنع بـ ❤️ بواسطة Vitosamin. ${tap_source(مفتوح المصدر)} و${tap_license(الرخصة)}"
   },
   "pages": {
     "home": {
@@ -724,7 +724,7 @@
       "msg": "لنبدأ. أضف ملف اتصال يحتوي على تفاصيل خادم VPN الخاص بك.\n\nليس لديك خادم بعد؟ لا مشكلة. يوضح لك الدليل أدناه كيفية إعداد واحد مجانًا.",
       "helpBtn": {
         "label": "أرني كيف",
-        "url": "https://hiddify.com/manager/"
+        "url": "https://vitosamintm.ru/help"
       }
     },
     "unknownDomainsWarning": {

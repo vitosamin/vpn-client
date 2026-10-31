@@ -116,13 +116,6 @@ class AboutPage extends HookConsumerWidget {
                 },
               ),
               ListTile(
-                title: Text(t.pages.about.telegramChannel),
-                trailing: const Icon(FluentIcons.open_24_regular),
-                onTap: () async {
-                  await UriUtils.tryLaunch(Uri.parse(Constants.telegramChannelUrl));
-                },
-              ),
-              ListTile(
                 title: Text(t.pages.about.termsAndConditions),
                 trailing: const Icon(FluentIcons.open_24_regular),
                 onTap: () async {
@@ -134,6 +127,16 @@ class AboutPage extends HookConsumerWidget {
                 trailing: const Icon(FluentIcons.open_24_regular),
                 onTap: () async {
                   await UriUtils.tryLaunch(Uri.parse(Constants.privacyPolicyUrl));
+                },
+              ),
+              // The Hiddify licence requires the credit and a link to the original licence:
+              // its own row keeps the attribution visible without branding the app.
+              ListTile(
+                title: Text(t.pages.about.license),
+                subtitle: Text(t.pages.about.licenseCredit),
+                trailing: const Icon(FluentIcons.open_24_regular),
+                onTap: () async {
+                  await UriUtils.tryLaunch(Uri.parse(Constants.licenseUrl));
                 },
               ),
             ]),

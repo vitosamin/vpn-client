@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Hiddify",
+    "appTitle": "Vitosamin",
     "start": "Mulai",
     "version": "Versi",
     "ok": "Oke",
@@ -98,7 +98,7 @@
   "intro": {
     "banner": "Semua yang Anda butuhkan untuk internet tanpa batasan",
     "termsAndPolicyCaution(rich)": "Dengan melanjutkan, Anda menyetujui ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Dibuat dengan ❤️ oleh Hiddify. ${tap_source(Sumber terbuka)} dan ${tap_license(Lisensi)}"
+    "info(rich)": "Dibuat dengan ❤️ oleh Vitosamin. ${tap_source(Sumber terbuka)} dan ${tap_license(Lisensi)}"
   },
   "pages": {
     "home": {
@@ -687,7 +687,7 @@
       "msg": "Mari mulai. Tambahkan profil koneksi dengan detail server VPN Anda.\n\nBelum punya server? Tidak masalah. Panduan di bawah ini menunjukkan cara membuatnya secara gratis.",
       "helpBtn": {
         "label": "Tunjukkan caranya",
-        "url": "https://hiddify.com/manager/"
+        "url": "https://vitosamintm.ru/help"
       }
     },
     "unknownDomainsWarning": {

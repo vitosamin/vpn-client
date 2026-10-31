@@ -3,15 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:hiddify/utils/utils.dart';
 
 abstract class Constants {
-  static const appName = "Hiddify";
-  static const githubUrl = "https://github.com/hiddify/hiddify-next";
-  static const licenseUrl = "https://github.com/hiddify/hiddify-next?tab=License-1-ov-file#readme";
-  static const githubReleasesApiUrl = "https://api.github.com/repos/hiddify/hiddify-next/releases";
-  static const githubLatestReleaseUrl = "https://github.com/hiddify/hiddify-app/releases/latest";
-  static const appCastUrl = "https://raw.githubusercontent.com/hiddify/hiddify-next/main/appcast.xml";
-  static const telegramChannelUrl = "https://t.me/hiddify";
-  static const privacyPolicyUrl = "https://hiddify.com/privacy-policy/";
-  static const termsAndConditionsUrl = "https://hiddify.com/terms/";
+  static const appName = "Vitosamin";
+  // Our own fork, published as a GitHub fork of hiddify-app before the first release
+  // (the Hiddify licence requires the fork and its licence link to stay public).
+  static const githubUrl = "https://github.com/vitosamin/vpn-client";
+  // The Hiddify Extended GPLv3 licence requires a link to the original licence and credit.
+  static const licenseUrl = "https://github.com/hiddify/hiddify-app/blob/main/LICENSE.md";
+  // No update server of our own yet: the app never offers Hiddify releases (see
+  // Release.allowCustomUpdateChecker).
+  static const githubReleasesApiUrl = "https://api.github.com/repos/vitosamin/vpn-client/releases";
+  static const githubLatestReleaseUrl = "https://github.com/vitosamin/vpn-client/releases/latest";
+  static const appCastUrl = "https://raw.githubusercontent.com/vitosamin/vpn-client/main/appcast.xml";
+  // TODO(branding): our own site pages, the domain is already used by the service.
+  static const privacyPolicyUrl = "https://vitosamintm.ru/privacy";
+  static const termsAndConditionsUrl = "https://vitosamintm.ru/terms";
   static const cfWarpPrivacyPolicy = "https://www.cloudflare.com/application/privacypolicy/";
   static const cfWarpTermsOfService = "https://www.cloudflare.com/application/terms/";
 }

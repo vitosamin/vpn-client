@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Hiddify",
+    "appTitle": "Vitosamin",
     "start": "Начать",
     "version": "Версия",
     "ok": "OK",
@@ -100,9 +100,9 @@
     }
   },
   "intro": {
-    "banner": "Все, что вам нужно для интернета без ограничений",
+    "banner": "Защищённое соединение для ваших сервисов",
     "termsAndPolicyCaution(rich)": "Продолжая, вы соглашаетесь с ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Сделано с ❤️ Hiddify. ${tap_source(Открытый исходный код)} и ${tap_license(Лицензия)}"
+    "info(rich)": "Сделано с ❤️ командой Vitosamin. ${tap_source(Исходный код)} и ${tap_license(Лицензия)}"
   },
   "pages": {
     "home": {
@@ -219,7 +219,9 @@
       "sourceCode": "Исходный код",
       "telegramChannel": "Канал в Telegram",
       "termsAndConditions": "Условия использования",
-      "privacyPolicy": "Политика конфиденциальности"
+      "privacyPolicy": "Политика конфиденциальности",
+      "license": "Лицензия и атрибуция",
+      "licenseCredit": "Основано на Hiddify App (hiddify/hiddify-app), лицензия Hiddify Extended GPLv3"
     },
     "settings": {
       "title": "Настройки",
@@ -732,7 +734,7 @@
       "msg": "Начнем. Добавьте профиль подключения с данными вашего VPN-сервера.\n\nЕще нет сервера? Не проблема. Руководство ниже покажет, как бесплатно его настроить.",
       "helpBtn": {
         "label": "Покажите, как",
-        "url": "https://hiddify.com/manager/"
+        "url": "https://vitosamintm.ru/help"
       }
     },
     "unknownDomainsWarning": {

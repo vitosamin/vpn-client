@@ -105,14 +105,14 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     fun show(profileName: String, @StringRes contentTextId: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Application.notification.createNotificationChannel(
-                NotificationChannel(notificationChannel, "hiddify service", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(notificationChannel, "Vitosamin service", NotificationManager.IMPORTANCE_LOW)
             )
         }
         render(profileName, service.getString(contentTextId), modeLabel, foreground = true)
     }
 
     private fun render(profile: String, text: String, header: String, foreground: Boolean = false) {
-        val next = Triple(profile.ifBlank { "Hiddify" }, text, header)
+        val next = Triple(profile.ifBlank { "Vitosamin" }, text, header)
         if (!foreground && next == shown) return
         shown = next
         val built = notificationBuilder

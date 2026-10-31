@@ -20,7 +20,10 @@ enum Release {
 
   final String key;
 
-  bool get allowCustomUpdateChecker => this == general;
+  /// Our fork has no update channel of its own, and the upstream appcast/github feeds would
+  /// offer Hiddify releases (a newer version number and a different app). Off for every
+  /// release until `Constants.appCastUrl`/`githubReleasesApiUrl` point at our own builds.
+  bool get allowCustomUpdateChecker => false;
 
   static Release read() =>
       Release.values.firstOrNullWhere((e) => e.key == const String.fromEnvironment("release")) ?? Release.general;
