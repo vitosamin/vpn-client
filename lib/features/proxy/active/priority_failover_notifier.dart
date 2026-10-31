@@ -168,7 +168,7 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
 
   void _onAllProxies(OutboundGroupList? list) {
     if (!_connected || list == null) return;
-    final servers = _serversOf(list);
+    final servers = priorityServersOf(list);
     if (servers.isEmpty) return;
     final wasEmpty = _servers.isEmpty;
     _servers = servers;
@@ -255,19 +255,8 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
   void _readServers() {
     final list = ref.read(allProxiesNotifierProvider).valueOrNull;
     if (list == null) return;
-    final servers = _serversOf(list);
+    final servers = priorityServersOf(list);
     if (servers.isNotEmpty) _servers = servers;
-  }
-
-  /// The profile's servers in subscription order, which is the priority order.
-  List<PriorityServer> _serversOf(OutboundGroupList list) {
-    final groups = list.items.where((group) => group.tag == selectGroupTag);
-    if (groups.isEmpty) return const [];
-    final main = groups.first;
-    return [
-      for (final item in main.items)
-        if (!item.isGroup) PriorityServer(tag: item.tag, delay: item.urlTestDelay),
-    ];
   }
 
   /// Pings the active server, and one higher-priority server that is down (in

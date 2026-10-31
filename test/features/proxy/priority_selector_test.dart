@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hiddify/features/proxy/active/priority_selector.dart';
+import 'package:hiddify/features/proxy/model/proxy_entity.dart';
+import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 
 // The engine is pure Dart + the app's delay rule, so every rule is tested here
 // without a core, gRPC or a clock of its own.
@@ -237,6 +239,38 @@ void main() {
 
       selector.reset();
       expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(75)).targetTag, _b);
+    });
+  });
+
+
+  group("servers from the core list", () {
+    OutboundGroup group(String tag, List<OutboundInfo> items) => OutboundGroup(tag: tag, items: items);
+    OutboundInfo groupItem(String tag) => OutboundInfo(tag: tag, isGroup: true);
+    OutboundInfo server(String tag, int delay) => OutboundInfo(tag: tag, urlTestDelay: delay);
+
+    test("keeps the subscription order and skips the selector's groups", () {
+      final list = OutboundGroupList(
+        items: [
+          group(selectGroupTag, [
+            groupItem(lowestGroupTag),
+            groupItem(balanceGroupTag),
+            server(_c, 30),
+            server(_a, 10),
+            server(_b, 20),
+          ]),
+          group(lowestGroupTag, [server(_a, 10)]),
+        ],
+      );
+
+      final servers = priorityServersOf(list);
+
+      expect(servers.map((it) => it.tag).toList(), [_c, _a, _b]);
+      expect(servers.map((it) => it.delay).toList(), [30, 10, 20]);
+    });
+
+    test("returns nothing when the main selector is missing", () {
+      final list = OutboundGroupList(items: [group(lowestGroupTag, [server(_a, 10)])]);
+      expect(priorityServersOf(list), isEmpty);
     });
   });
 

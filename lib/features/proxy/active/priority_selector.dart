@@ -1,4 +1,6 @@
 import 'package:hiddify/core/model/constants.dart';
+import 'package:hiddify/features/proxy/model/proxy_entity.dart';
+import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 
 /// A server as the core reports it, with the subscription position as its priority.
 ///
@@ -253,4 +255,17 @@ class PrioritySelector {
     final last = _lastSwitchAt;
     return last != null && now.difference(last) < window;
   }
+}
+
+/// The profile's servers in priority order, taken from the core's full outbound
+/// list: the leaf members of the main selector, in the order the core built them
+/// from the subscription. The selector's own group members (`lowest`, `balance`)
+/// are skipped, they are not servers.
+List<PriorityServer> priorityServersOf(OutboundGroupList list) {
+  final groups = list.items.where((group) => group.tag == selectGroupTag);
+  if (groups.isEmpty) return const [];
+  return [
+    for (final item in groups.first.items)
+      if (!item.isGroup) PriorityServer(tag: item.tag, delay: item.urlTestDelay),
+  ];
 }
