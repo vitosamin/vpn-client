@@ -9,6 +9,7 @@ import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/model/region.dart';
 import 'package:hiddify/core/notification/in_app_notification_controller.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
+import 'package:hiddify/features/route_rules/data/bundled_geo_rules.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/hiddifycore/generated/v2/config/route_rule.pb.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -40,7 +41,11 @@ enum BuiltinRule {
     bypassRegion => t.pages.settings.routing.builtinRules.bypassRegion(region: region.presentName(t)),
   };
 
-  Rule get rule => switch (this) {
+  /// The rule's content as the app ships it. The region rule for Russia is built from the lists
+  /// bundled in the app (see [BundledGeoRules]), so it needs no network and no GitHub: RU domains
+  /// and addresses take the direct outbound from the first connect. For every other region the
+  /// rule stays remote and the core downloads it through the tunnel, as before.
+  Rule rule(Region region) => switch (this) {
     bypassLan => Rule(
       outbound: Outbound.direct,
       // the ranges sing-box treats as private (ip_is_private)
@@ -70,10 +75,17 @@ enum BuiltinRule {
         '$_geoUrl/block/geoip-phishing.srs',
       ],
     ),
-    bypassRegion => Rule(
-      outbound: Outbound.direct,
-      ruleSets: ['$_geoUrl/country/geosite-{region}.srs', '$_geoUrl/country/geoip-{region}.srs'],
-    ),
+    bypassRegion =>
+      region == Region.ru && !BundledGeoRules.instance.isEmpty
+          ? Rule(
+              outbound: Outbound.direct,
+              domains: BundledGeoRules.instance.domains,
+              domainSuffixes: BundledGeoRules.instance.domainSuffixes,
+            )
+          : Rule(
+              outbound: Outbound.direct,
+              ruleSets: ['$_geoUrl/country/geosite-{region}.srs', '$_geoUrl/country/geoip-{region}.srs'],
+            ),
   }..name = key;
 }
 
@@ -109,11 +121,11 @@ class RulesNotifier extends _$RulesNotifier with AppLogger {
       if (builtin == null) {
         rules.add(rule);
       } else if (missing.remove(builtin)) {
-        rules.add(builtin.rule..enabled = rule.enabled);
+        rules.add(builtin.rule(region)..enabled = rule.enabled);
       }
     }
     return _updateListOrder([
-      for (final builtin in missing) builtin.rule..enabled = builtin.enabledByDefault,
+      for (final builtin in missing) builtin.rule(region)..enabled = builtin.enabledByDefault,
       ...rules,
     ]);
   }

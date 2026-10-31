@@ -24,6 +24,7 @@ import 'package:hiddify/features/log/data/log_data_providers.dart';
 import 'package:hiddify/features/profile/data/profile_data_providers.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
+import 'package:hiddify/features/route_rules/data/bundled_geo_rules.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/features/system_tray/notifier/system_tray_notifier.dart';
 import 'package:hiddify/features/window/notifier/window_notifier.dart';
@@ -75,6 +76,12 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
       await container.read(sharedPreferencesProvider).requireValue.clear();
     }
   });
+
+  // The bundled geo lists are what the default (Russia) region rule is built from: with them the
+  // core's config has plain RU domains and addresses, so the rule works with no network and no
+  // GitHub. Reading them takes a few milliseconds and must not hold the app up; a failure leaves
+  // the rule on its remote rule-set.
+  await _safeInit("bundled geo rules", () => BundledGeoRules.load());
 
   // The log level decides this now. There is no second debug switch to keep in
   // sync, and the core reaches the same conclusion from the same value.

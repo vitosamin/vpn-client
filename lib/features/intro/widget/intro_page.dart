@@ -215,17 +215,16 @@ class IntroPage extends HookConsumerWidget with PresLogger {
   }
 
   Future<void> autoSelectRegion(WidgetRef ref) async {
-    try {
-      final countryCode = RegionDetector.detect();
+    final countryCode = RegionDetector.detect();
+    if (countryCode != null) {
       final regionLocale = _getRegionLocale(countryCode);
       loggy.debug('Timezone Region: ${regionLocale.region} Locale: ${regionLocale.locale}');
       await ref.read(ConfigOptions.region.notifier).update(regionLocale.region);
       await ref.watch(ConfigOptions.directDnsAddress.notifier).reset();
       await ref.read(localePreferencesProvider.notifier).changeLocale(regionLocale.locale);
       return;
-    } catch (e) {
-      loggy.warning('Could not get the local country code based on timezone', e);
     }
+    loggy.info('the timezone does not name a country, asking the network');
 
     try {
       final DioHttpClient client = DioHttpClient(
@@ -248,6 +247,8 @@ class IntroPage extends HookConsumerWidget with PresLogger {
     } catch (e) {
       loggy.warning('Could not get the local country code from ip');
     }
+    // Neither the timezone nor the network knows the country: the region keeps the product default
+    // (Russia) rather than being reset to Other, so the default region rule is not dropped.
   }
 
   RegionLocale _getRegionLocale(String country) {
@@ -278,16 +279,22 @@ class RegionLocale {
 }
 
 class RegionDetector {
-  /// Returns: 'IR' | 'AF' | 'CN' | 'TR' | 'RU' | 'BR' | 'US'
-  static String detect() {
+  /// Returns 'IR' | 'AF' | 'CN' | 'TR' | 'RU' | 'BR', or null when the timezone names no country.
+  ///
+  /// The zone name and offset come from the OS and can be generic ("UTC", a bare abbreviation) or
+  /// missing, so an unknown one must not be guessed as a foreign country: the caller keeps the
+  /// region the app ships with. [timeZoneName], [timeZoneOffsetMinutes] and [localeName] are for
+  /// tests; normally they are read from the device.
+  static String? detect({String? timeZoneName, int? timeZoneOffsetMinutes, String? localeName}) {
     final now = DateTime.now();
-    final offset = now.timeZoneOffset.inMinutes;
-    final tz = now.timeZoneName.toLowerCase().trim();
+    final offset = timeZoneOffsetMinutes ?? now.timeZoneOffset.inMinutes;
+    final tz = (timeZoneName ?? now.timeZoneName).toLowerCase().trim();
+    final locale = localeName ?? Platform.localeName;
 
     if (offset == 210) return 'IR';
 
     if (offset == 270) {
-      final (_, country) = _parseLocale();
+      final (_, country) = _parseLocale(locale);
       return country == 'IR' ? 'IR' : 'AF';
     }
 
@@ -295,9 +302,9 @@ class RegionDetector {
     if (fromName != null) return fromName;
 
     final candidates = _candidatesForOffset(offset);
-    if (candidates.isEmpty) return 'US';
+    if (candidates.isEmpty) return null;
 
-    return _resolveByLocale(candidates);
+    return _resolveByLocale(candidates, locale);
   }
 
   static String? _fromTzName(String tz, int offset) {
@@ -377,8 +384,8 @@ class RegionDetector {
 
   static const _brOffsets = {-120, -180, -240, -300};
 
-  static String _resolveByLocale(Set<String> candidates) {
-    final (lang, country) = _parseLocale();
+  static String? _resolveByLocale(Set<String> candidates, String locale) {
+    final (lang, country) = _parseLocale(locale);
 
     if (country != null && candidates.contains(country)) {
       return country;
@@ -389,12 +396,12 @@ class RegionDetector {
       return regionFromLang;
     }
 
-    return 'US';
+    return null;
   }
 
-  static (String, String?) _parseLocale() {
+  static (String, String?) _parseLocale(String locale) {
     try {
-      final parts = Platform.localeName.split(RegExp(r'[_\-.]'));
+      final parts = locale.split(RegExp(r'[_\-.]'));
       final lang = parts.first.toLowerCase();
 
       String? country;

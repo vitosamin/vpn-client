@@ -154,6 +154,11 @@ flutter:
   assets:
     # - assets/core/geoip.db
     # - assets/core/geosite.db
+    # the RU country lists the default region rule is built from; regenerate with
+    # scripts/update-geo-rules.sh (see assets/geo/README.md)
+    - assets/geo/ru_domain.txt
+    - assets/geo/ru_domain_suffix.txt
+    - assets/geo/ru_ip_cidr.txt
     - assets/images/logo.svg
     - assets/images/tray_icon.ico
     - assets/images/tray_icon.png

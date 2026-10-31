@@ -73,7 +73,7 @@ void main() {
   Rule custom(String name, {bool enabled = true}) =>
       Rule(name: name, enabled: enabled, outbound: Outbound.proxy, domains: ['$name.example']);
 
-  Rule builtin(BuiltinRule builtin, {required bool enabled}) => builtin.rule..enabled = enabled;
+  Rule builtin(BuiltinRule builtin, {required bool enabled}) => builtin.rule(Region.ir)..enabled = enabled;
 
   /// Each rule as its name and switch, such as "builtin:bypassLan on".
   List<String> describe(List<Rule> rules) => [for (final rule in rules) '${rule.name} ${rule.enabled ? 'on' : 'off'}'];
@@ -144,7 +144,7 @@ void main() {
       ]);
       final container = await open();
       for (final rule in container.read(rulesNotifierProvider)) {
-        final expected = BuiltinRule.of(rule)!.rule
+        final expected = BuiltinRule.of(rule)!.rule(Region.ir)
           ..enabled = rule.enabled
           ..listOrder = rule.listOrder;
         expect(rule, expected, reason: rule.name);
@@ -270,7 +270,7 @@ void main() {
       expect(current(container), ['builtin:bypassLan on', 'builtin:bypassRegion on', 'a on', 'builtin:blockAds on']);
       final blockAds = container.read(rulesNotifierProvider).last;
       expect(blockAds.outbound, Outbound.block);
-      expect(blockAds.ruleSets, BuiltinRule.blockAds.rule.ruleSets);
+      expect(blockAds.ruleSets, BuiltinRule.blockAds.rule(Region.ir).ruleSets);
       expectSaved(container);
     });
   });
