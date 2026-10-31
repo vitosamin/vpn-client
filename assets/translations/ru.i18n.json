@@ -120,6 +120,10 @@
       "activeProxy": "Активный прокси",
       "unknownIp": "Неизвестный IP",
       "switchFailed": "Не удалось переключиться на этот прокси. Попробуйте ещё раз.",
+      "priorityAuto": "авто",
+      "priorityFailover": "фейловер",
+      "priorityFailoverToast": "«${server}» не отвечает, переключилась на «${target}»",
+      "priorityRecoveryToast": "«${server}» снова отвечает, вернулась на него",
       "sortOptions": {
         "unsorted": "По умолчанию",
         "name": "По алфавиту",

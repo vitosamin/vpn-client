@@ -35,10 +35,14 @@ class ProxyItemEntity with _$ProxyItemEntity {
   bool get isVisible => !tag.contains("§hide§");
 }
 
-String _sanitizedTag(String tag) => tag.replaceFirst(RegExp(r"\§[^]*"), "").trimRight();
+String _sanitizedTag(String tag) => sanitizedTagName(tag);
+
+/// A tag as it should be shown to the user: without the core's hidden suffix.
+String sanitizedTagName(String tag) => tag.replaceFirst(RegExp(r"\§[^]*"), "").trimRight();
 // bool get isVisible => !tag.contains("§hide§");
 
 // Names the core gives its own groups (hiddify-core v2/config).
+const selectGroupTag = 'select';
 const lowestGroupTag = 'lowest';
 const balanceGroupTag = 'balance';
 

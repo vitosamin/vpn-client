@@ -166,7 +166,11 @@ abstract class ConfigOptions {
 
   static final urlTestInterval = PreferencesNotifier.create<Duration, int>(
     "url-test-interval",
-    const Duration(minutes: 10),
+    // The core pings every server on this interval; the priority auto-select
+    // needs fresh pings for every server to fail over quickly, so 2 minutes
+    // instead of the upstream 10. The active server is also probed on its own
+    // 15-second timer, so this only refreshes the rest.
+    const Duration(minutes: 2),
     mapFrom: const IntervalInSecondsConverter().fromJson,
     mapTo: const IntervalInSecondsConverter().toJson,
   );
