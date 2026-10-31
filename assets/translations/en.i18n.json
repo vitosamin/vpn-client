@@ -103,7 +103,15 @@
   "pages": {
     "home": {
       "title": "Home",
-      "quickSettings": "Quick settings"
+      "quickSettings": "Quick settings",
+      "notConnected": "Not connected",
+      "protectedConnection": "Protected connection",
+      "telegram": "We are on Telegram",
+      "telegramSubtitle": "News and support",
+      "emptyTitle": "Enter your access code or add a subscription",
+      "emptySubtitle": "The code comes after payment in the bot; a subscription link comes from your provider.",
+      "haveCode": "I have a code",
+      "addSubscription": "Add subscription"
     },
     "proxies": {
       "title": "Proxies",
@@ -223,7 +231,8 @@
       "termsAndConditions": "Terms and conditions",
       "privacyPolicy": "Privacy policy",
       "license": "License and attribution",
-      "licenseCredit": "Based on Hiddify App (hiddify/hiddify-app) under the Hiddify Extended GPLv3"
+      "licenseCredit": "Based on Hiddify App (hiddify/hiddify-app) under the Hiddify Extended GPLv3",
+      "telegramGroup": "Telegram group"
     },
     "settings": {
       "title": "Settings",
@@ -812,7 +821,7 @@
     "tapToConnect": "Tap to connect",
     "connect": "Connect",
     "connecting": "Connecting…",
-    "waiting": "Searching for freedom…",
+    "waiting": "Waiting for a response…",
     "noAvailableProxies": "Connection failed",
     "hotReloading": "Applying changes…",
     "connected": "Connected",

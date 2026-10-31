@@ -107,7 +107,15 @@
   "pages": {
     "home": {
       "title": "Главная",
-      "quickSettings": "Быстрые настройки"
+      "quickSettings": "Быстрые настройки",
+      "notConnected": "Не подключено",
+      "protectedConnection": "Защищённое соединение",
+      "telegram": "Мы в Telegram",
+      "telegramSubtitle": "Новости и поддержка",
+      "emptyTitle": "Введите код доступа или добавьте подписку",
+      "emptySubtitle": "Код приходит после оплаты в боте, подписку можно добавить по ссылке от провайдера.",
+      "haveCode": "У меня есть код",
+      "addSubscription": "Добавить подписку"
     },
     "proxies": {
       "title": "Прокси",
@@ -224,7 +232,8 @@
       "termsAndConditions": "Условия использования",
       "privacyPolicy": "Политика конфиденциальности",
       "license": "Лицензия и атрибуция",
-      "licenseCredit": "Основано на Hiddify App (hiddify/hiddify-app), лицензия Hiddify Extended GPLv3"
+      "licenseCredit": "Основано на Hiddify App (hiddify/hiddify-app), лицензия Hiddify Extended GPLv3",
+      "telegramGroup": "Группа в Telegram"
     },
     "settings": {
       "title": "Настройки",
@@ -794,7 +803,7 @@
     "tapToConnect": "Нажмите для подключения",
     "connect": "Подключить",
     "connecting": "Подключение…",
-    "waiting": "В поисках свободы…",
+    "waiting": "Ожидание ответа…",
     "noAvailableProxies": "Сбой подключения",
     "hotReloading": "Применение изменений…",
     "connected": "Подключено",

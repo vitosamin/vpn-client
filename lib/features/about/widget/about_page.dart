@@ -15,6 +15,7 @@ import 'package:hiddify/features/app_update/notifier/app_update_state.dart';
 import 'package:hiddify/gen/assets.gen.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:simple_icons/simple_icons.dart';
 
 class AboutPage extends HookConsumerWidget {
   const AboutPage({super.key});
@@ -127,6 +128,14 @@ class AboutPage extends HookConsumerWidget {
                 trailing: const Icon(FluentIcons.open_24_regular),
                 onTap: () async {
                   await UriUtils.tryLaunch(Uri.parse(Constants.privacyPolicyUrl));
+                },
+              ),
+              ListTile(
+                leading: const Icon(SimpleIcons.telegram),
+                title: Text(t.pages.about.telegramGroup),
+                trailing: const Icon(FluentIcons.open_24_regular),
+                onTap: () async {
+                  await UriUtils.tryLaunch(Uri.parse(Constants.telegramGroupUrl));
                 },
               ),
               // The Hiddify licence requires the credit and a link to the original licence:
