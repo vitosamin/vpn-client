@@ -39,8 +39,12 @@ abstract class Preferences {
   // is turned on.
   static final autoAppsSelectionOffByUser = PreferencesNotifier.create<bool, bool>(
     "auto_apps_selection_off_by_user",
-    false,
+    // the app ships its own popular list; the remote per-region list would replace it
+    true,
   );
+
+  /// Whether the bundled popular apps were already applied to the list.
+  static final popularAppsSeeded = PreferencesNotifier.create<bool, bool>("popular_apps_seeded", false);
 
   static final includeApps = PreferencesNotifier.create<List<String>, List<String>>(
     "per_app_proxy_include_list",
@@ -89,12 +93,12 @@ abstract class Preferences {
   // iOS only: kept in step with the native side, which applies it (see VPNManager.setAlwaysOn).
   static final alwaysOnVpn = PreferencesNotifier.create<bool, bool>("always_on_vpn", false);
 
-  static final perAppProxyEnabled = PreferencesNotifier.create<bool, bool>("per_app_proxy_enabled", false);
+  static final perAppProxyEnabled = PreferencesNotifier.create<bool, bool>("per_app_proxy_enabled", true);
 
   // Kept while App-based routing is off, for when it is turned on again.
   static final perAppProxyMode = PreferencesNotifier.create<AppProxyMode, String>(
     "per_app_proxy_mode",
-    AppProxyMode.exclude,
+    AppProxyMode.include,
     mapFrom: AppProxyMode.values.byName,
     mapTo: (value) => value.name,
   );

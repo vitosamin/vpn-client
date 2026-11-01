@@ -439,7 +439,9 @@
               "one": "$n auto pick restored",
               "other": "$n auto picks restored"
             }
-          }
+          },
+          "popular": "Popular apps",
+          "popularApplied": "Popular apps are selected"
         },
         "region": "Region",
         "regions": {

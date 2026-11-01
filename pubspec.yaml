@@ -1,7 +1,7 @@
 name: hiddify
 description: Vitosamin — защищённый сетевой профиль (Android/iOS).
 publish_to: "none"
-version: 1.0.6+7
+version: 2.0.0+8
 
 environment:
   sdk: ^3.10.4
@@ -156,11 +156,6 @@ flutter:
     # - assets/core/geosite.db
     # the RU country lists the default region rule is built from; regenerate with
     # scripts/update-geo-rules.sh (see assets/geo/README.md)
-    - assets/geo/ru_domain.txt
-    - assets/geo/ru_domain_suffix.txt
-    - assets/geo/ru_ip_cidr.txt
-    - assets/geo/ru_extra.txt
-    - assets/routing/services.json
     - assets/images/logo.svg
     - assets/images/tray_icon.ico
     - assets/images/tray_icon.png

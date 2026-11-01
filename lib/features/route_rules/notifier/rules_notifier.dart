@@ -6,11 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:hiddify/core/directories/directories_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
-import 'package:hiddify/core/model/region.dart';
 import 'package:hiddify/core/notification/in_app_notification_controller.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
-import 'package:hiddify/features/route_rules/data/bundled_geo_rules.dart';
-import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/hiddifycore/generated/v2/config/route_rule.pb.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -23,8 +20,11 @@ const _geoUrl = 'https://raw.githubusercontent.com/hiddify/hiddify-geo/rule-set'
 /// only switch and move them, and their content comes from here, so an update can change it.
 enum BuiltinRule {
   bypassLan(enabledByDefault: true),
-  blockAds(enabledByDefault: false),
-  bypassRegion(enabledByDefault: true);
+  blockAds(enabledByDefault: false);
+
+  /// The geo region rule of older builds. It is no longer offered: routing is per app now, and
+  /// a saved copy is dropped instead of being kept as a custom rule.
+  static const legacyRegionRule = "builtin:bypassRegion";
 
   const BuiltinRule({required this.enabledByDefault});
 
@@ -35,17 +35,16 @@ enum BuiltinRule {
 
   static BuiltinRule? of(Rule rule) => values.where((builtin) => builtin.key == rule.name).firstOrNull;
 
-  String present(Translations t, Region region) => switch (this) {
+  String present(Translations t) => switch (this) {
     bypassLan => t.pages.settings.routing.builtinRules.bypassLan,
     blockAds => t.pages.settings.routing.builtinRules.blockAds,
-    bypassRegion => t.pages.settings.routing.builtinRules.russianSites,
   };
 
   /// The rule's content as the app ships it. The region rule for Russia is built from the lists
   /// bundled in the app (see [BundledGeoRules]), so it needs no network and no GitHub: RU domains
   /// and addresses take the direct outbound from the first connect. For every other region the
   /// rule stays remote and the core downloads it through the tunnel, as before.
-  Rule rule(Region region) => switch (this) {
+  Rule rule() => switch (this) {
     bypassLan => Rule(
       outbound: Outbound.direct,
       // the ranges sing-box treats as private (ip_is_private)
@@ -75,31 +74,7 @@ enum BuiltinRule {
         '$_geoUrl/block/geoip-phishing.srs',
       ],
     ),
-    bypassRegion => _russianSitesRule(),
   }..name = key;
-
-  /// The Russian sites rule: every list is bundled in the app, so it needs no network, no
-  /// GitHub and no region setting. The product ships to Russia, so this rule does not depend on
-  /// the region the intro detected: a profile that once got another region (or the old "Other")
-  /// still sends Russian sites direct.
-  ///
-  /// Three layers add up: the country lists (`geosite-ru`, `geoip-ru`), the curated services on
-  /// non-`.ru` domains, and the Russian TLDs. A site that none of the lists names still goes
-  /// direct when it is `.ru`, `.su`, `.рф` or `.moscow`.
-  Rule _russianSitesRule() {
-    return Rule(
-      outbound: Outbound.direct,
-      domains: BundledGeoRules.instance.domains,
-      domainSuffixes: [
-        ...BundledGeoRules.instance.domainSuffixes,
-        ...BundledGeoRules.instance.extraSuffixes,
-        'ru',
-        'su',
-        'xn--p1ai',
-        'moscow',
-      ],
-    );
-  }
 }
 
 @riverpod
@@ -110,34 +85,28 @@ class RulesNotifier extends _$RulesNotifier with AppLogger {
   List<Rule> build() {
     final directories = ref.watch(appDirectoriesProvider).requireValue;
     file = File('${directories.baseDir.path}/route_rule.proto');
-    // the region rule goes with Other and comes back with any other region; a list never saved is still the
-    // default one, so it keeps the default order (the intro sets the region on a new install)
-    ref.listen(ConfigOptions.region, (_, _) async {
-      state = _withBuiltins(file.existsSync() ? state : []);
-      await _updateFile();
-    });
     return _withBuiltins(file.existsSync() ? RouteRule.fromBuffer(file.readAsBytesSync()).rules : []);
   }
 
-  /// Every built-in rule once, with the app's content and the user's switch and place; the ones missing go
-  /// first, as in a new list. The region rule does nothing while the region is Other, so it's left out then.
+  /// Every built-in rule once, with the app's content and the user's switch and place; the ones
+  /// missing go first, as in a new list. Saved rules of removed built-ins (the geo region rule) are
+  /// dropped instead of turning into custom rules.
   List<Rule> _withBuiltins(List<Rule> saved) {
-    final region = ref.read(ConfigOptions.region);
-    // the built-ins the list needs, in their own order; each one found in the saved list is crossed off
-    // The Russian sites rule is always in the list: the product is for Russia, and a profile the
-    // old detector left on "Other" used to lose the rule entirely.
+    // The built-ins the list needs; each one found in the saved list is crossed off.
     final missing = {for (final builtin in BuiltinRule.values) builtin};
     final rules = <Rule>[];
     for (final rule in saved) {
       final builtin = BuiltinRule.of(rule);
       if (builtin == null) {
+        // The geo region rule of older builds is gone: don't keep it as an unknown custom rule.
+        if (rule.name == BuiltinRule.legacyRegionRule || rule.name.startsWith("builtin:")) continue;
         rules.add(rule);
       } else if (missing.remove(builtin)) {
-        rules.add(builtin.rule(region)..enabled = rule.enabled);
+        rules.add(builtin.rule()..enabled = rule.enabled);
       }
     }
     return _updateListOrder([
-      for (final builtin in missing) builtin.rule(region)..enabled = builtin.enabledByDefault,
+      for (final builtin in missing) builtin.rule()..enabled = builtin.enabledByDefault,
       ...rules,
     ]);
   }

@@ -52,10 +52,6 @@ abstract class ConfigOptions {
     mapTo: (value) => value.name,
   );
 
-  /// The router's split: the services in `assets/routing/services.json` go through the VPN and
-  /// everything else goes direct. Off — all traffic goes through the VPN as before.
-  static final servicesOnlyRouting = PreferencesNotifier.create<bool, bool>("services-only-routing", true);
-
   static final resolveDestination = PreferencesNotifier.create<bool, bool>("resolve-destination", false);
 
   static final ipv6Mode = PreferencesNotifier.create<IPv6Mode, String>(
@@ -379,7 +375,6 @@ abstract class ConfigOptions {
     "use-xray-core-when-possible": useXrayCoreWhenPossible,
     "use-system-tls-engine": useSystemTlsEngine,
     "service-mode": serviceMode,
-    "services-only-routing": servicesOnlyRouting,
     "log-level": logLevel,
     "resolve-destination": resolveDestination,
     "ipv6-mode": ipv6Mode,
@@ -569,15 +564,8 @@ abstract class ConfigOptions {
         ),
         profile: SingboxUnblockerProfileOption(id: ref.watch(unblockerProfileId)),
       ),
-      // the bundled region rule is split for the core, and the service preset is appended
-      // when the split routing is on: see effectiveRouteRules
-      routeRule:
-          RouteRule(
-            rules: effectiveRouteRules(
-              ref.watch(rulesNotifierProvider),
-              servicesOnly: ref.watch(servicesOnlyRouting),
-            ),
-          ).toProto3Json()! as Map<String, dynamic>,
+      routeRule: RouteRule(rules: effectiveRouteRules(ref.watch(rulesNotifierProvider))).toProto3Json()!
+          as Map<String, dynamic>,
     );
   });
 }

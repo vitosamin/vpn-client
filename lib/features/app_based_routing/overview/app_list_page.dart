@@ -11,6 +11,7 @@ import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/features/app_based_routing/data/selected_data_provider.dart';
 import 'package:hiddify/features/app_based_routing/model/app_package_info.dart';
 import 'package:hiddify/features/app_based_routing/model/pkg_flag.dart';
+import 'package:hiddify/features/app_based_routing/overview/app_based_routing_notifier.dart';
 import 'package:hiddify/features/app_based_routing/overview/app_list_notifier.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -237,6 +238,19 @@ class AppListPage extends HookConsumerWidget with PresLogger {
           : AppBar(
               title: Text(mode?.listTitle(t) ?? t.pages.settings.routing.appBasedRouting.title),
               actions: [
+                IconButton(
+                  key: const ValueKey('popular_apps_button'),
+                  icon: const Icon(FluentIcons.rocket_24_regular),
+                  tooltip: t.pages.settings.routing.appBasedRouting.popular,
+                  onPressed: () async {
+                    await ref.read(appBasedRoutingProvider.notifier).applyPopular();
+                    if (context.mounted) {
+                      ref.read(inAppNotificationControllerProvider).showSuccessToast(
+                        t.pages.settings.routing.appBasedRouting.popularApplied,
+                      );
+                    }
+                  },
+                ),
                 IconButton(
                   icon: const Icon(FluentIcons.search_24_regular),
                   onPressed: () => isSearching.value = true,

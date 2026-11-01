@@ -5,7 +5,6 @@ import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/features/route_rules/notifier/rules_notifier.dart';
 import 'package:hiddify/features/route_rules/widget/setting_detail_chips.dart';
-import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/hiddifycore/generated/v2/config/route_rule.pb.dart';
 import 'package:hiddify/utils/platform_utils.dart';
 
@@ -54,7 +53,6 @@ class RuleTile extends HookConsumerWidget {
     final t = ref.watch(translationsProvider).requireValue;
     final theme = Theme.of(context);
     final builtin = BuiltinRule.of(rule);
-    final region = ref.watch(ConfigOptions.region);
     final scrollController = useScrollController();
     ref.listen(rulesNotifierProvider, (_, _) {
       if (scrollController.offset > 0) scrollController.jumpTo(0);
@@ -94,7 +92,7 @@ class RuleTile extends HookConsumerWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      builtin?.present(t, region) ?? rule.name,
+                      builtin?.present(t) ?? rule.name,
                       style: theme.textTheme.bodyLarge,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

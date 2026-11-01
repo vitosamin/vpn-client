@@ -1,8 +1,8 @@
 # STATE — vitosamin (клиент Vitosamin, форк Hiddify App)
 
-> Обновлено: 2026-11-01 12:45 (Europe/Kaliningrad)
+> Обновлено: 2026-11-01 13:05 (Europe/Kaliningrad)
 > https://github.com/vitosamin/vpn-client (публичный форк hiddify/hiddify-app)
-> Ветка `main`, версия 1.0.6+7; релизы 1.0.2–1.0.6 опубликованы ([v1.0.6](https://github.com/vitosamin/vpn-client/releases/tag/v1.0.6))
+> Ветка `main`, версия 2.0.0+8; релизы 1.0.2–1.0.6 и 2.0.0
 
 ## Что это
 
@@ -27,9 +27,11 @@ GitHub: `.sandbox/.gh-oauth-token`, keystore `.secrets/vitosamin-release.jks`.
 - 1.0.5: раздельная маршрутизация как на роутере владельца — через VPN идут только
   сервисы из его пресета `singbox-manager` (23 сервиса, `assets/routing/services.json`),
   остальное напрямую; переключатель «Только нужные сервисы через VPN» (вкл.).
-- 1.0.6: `preset:block-quic` (reject UDP/443, как `block_quic` на роутере) — QUIC уходил
-  мимо правил, из-за чего не грузились превью YouTube; в YouTube-сервис добавлены
-  `googleusercontent.com`, `gstatic.com`, `googleapis.com`.
+- 2.0.0: гео-списки и доменные правила удалены; маршрутизация по приложениям
+  (`include`-режим): выбранные приложения идут через VPN, остальные напрямую.
+  Заготовка популярных приложений (`PopularApps`) применяется при первом запуске к
+  установленным; кнопка «Популярные» в списке приложений; удалённые гео-правила
+  вычищаются из сохранённого списка.
 - Обновления: проверка GitHub Releases при каждом запуске и из «О приложении»,
   скачивание APK из релиза.
 

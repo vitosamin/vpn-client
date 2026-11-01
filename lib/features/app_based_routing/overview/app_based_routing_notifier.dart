@@ -4,8 +4,10 @@ import 'package:hiddify/core/model/region.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/features/app_based_routing/data/auto_selection_repository.dart';
 import 'package:hiddify/features/app_based_routing/data/auto_selection_repository_provider.dart';
+import 'package:hiddify/features/app_based_routing/data/popular_apps.dart';
 import 'package:hiddify/features/app_based_routing/data/selected_data_provider.dart';
 import 'package:hiddify/features/app_based_routing/model/per_app_proxy_mode.dart';
+import 'package:hiddify/features/app_based_routing/model/pkg_flag.dart';
 import 'package:hiddify/features/app_based_routing/overview/auto_selection_notifier.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -39,6 +41,32 @@ class AppBasedRouting extends _$AppBasedRouting with AppLogger {
       _timer?.cancel();
     });
     await _autoSelectionUpdate();
+    await _seedPopularApps();
+  }
+
+  /// The first run (and every run until it succeeds): the popular apps installed on the phone are
+  /// selected for the VPN, the include mode is on, and the remote per-region list stays off so it
+  /// does not replace the bundled one. A list the user already curated is never touched.
+  Future<void> _seedPopularApps() async {
+    if (!PlatformUtils.isAndroid || ref.read(Preferences.popularAppsSeeded)) return;
+    final data = ref.read(appProxyDataSourceProvider);
+    final chosen = await data.getPkgsByFlag(flag: PkgFlag.userSelection, mode: AppProxyMode.include);
+    if (chosen.isEmpty) await applyPopular();
+    await ref.read(Preferences.perAppProxyMode.notifier).update(AppProxyMode.include);
+    await ref.read(Preferences.perAppProxyEnabled.notifier).update(true);
+    await ref.read(Preferences.autoAppsSelectionOffByUser.notifier).update(true);
+    await ref.read(Preferences.popularAppsSeeded.notifier).update(true);
+  }
+
+  /// Selects the bundled popular apps that are installed, keeping the rest of the list.
+  Future<void> applyPopular({Set<String>? installed}) async {
+    if (!PlatformUtils.isAndroid) return;
+    final phone =
+        installed ?? (await InstalledApps.getInstalledApps(false)).map((e) => e.packageName).toSet();
+    final popular = PopularApps.packages.where(phone.contains).toSet();
+    if (popular.isEmpty) return;
+    await ref.read(appProxyDataSourceProvider).applyAutoSelection(autoList: popular, mode: AppProxyMode.include);
+    await ref.read(Preferences.autoAppsSelectionOffByUser.notifier).update(true);
   }
 
   AppProxyMode? get _mode => ref.read(Preferences.perAppProxyModeInUse);

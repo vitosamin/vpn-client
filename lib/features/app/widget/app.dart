@@ -61,6 +61,9 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
     final theme = AppTheme(themeMode, locale.preferredFontFamily);
     final activeBreakpoint = Breakpoint(context).activeBreakpoint;
 
+    // Kept alive from launch: its first run selects the bundled popular apps for the VPN.
+    ref.watch(appBasedRoutingProvider);
+
     ref.listen(foregroundProfilesUpdateNotifierProvider, (_, _) {});
     if (PlatformUtils.isAndroid) ref.listen(appBasedRoutingProvider, (_, _) {});
     if (PlatformUtils.isDesktop) ref.listen(systemTrayNotifierProvider, (_, _) {});
