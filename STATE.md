@@ -1,60 +1,62 @@
 # STATE — vitosamin (клиент Vitosamin, форк Hiddify App)
 
-> Обновлено: 2026-11-01 02:58 (Europe/Kaliningrad)
-> Ветка: `main` · версия 1.0.2+3 (versionCode 3) · дерево чистое
+> Обновлено: 2026-11-01 03:30 (Europe/Kaliningrad)
+> Репозиторий: https://github.com/vitosamin/vpn-client (публичный форк hiddify/hiddify-app)
+> Ветка `main`, версия 1.0.2+3 · релиз [v1.0.2](https://github.com/vitosamin/vpn-client/releases/tag/v1.0.2) опубликован
 
 ## Что это
 
-Android-клиент Vitosamin (3x-ui, VLESS/Reality) — публичный форк Hiddify App 5.3.0
-(Flutter + sing-box). Развёрнут из `vitosamin-transfer/…/vitosamin.bundle`, история
-сшита с upstream v5.3.0 (`upstream` = hiddify/hiddify-app, fetch blobless).
+Android-клиент Vitosamin (3x-ui, VLESS/Reality) на базе Hiddify App 5.3.0
+(Flutter + sing-box). Форк публичный, лицензия Hiddify соблюдена: релизы собирает
+только GitHub Actions (`.github/workflows/release-apk.yml`, тег `v*`).
 
-## Как собрать
+## Как собрать/выпустить
 
 ```sh
-source /home/dsh/projects/.env-android.sh   # HOME/PUB_CACHE/GRADLE_USER_HOME в воркспейсе
+source /home/dsh/projects/.env-android.sh
 cd /home/dsh/projects/vitosamin
-flutter build apk --release                 # universal + splits (arm64 берём оттуда)
+flutter build apk --release        # universal + splits, arm64 берём оттуда
 ```
 
-Окружение: Flutter 3.38.5 `tools/flutter`, JDK 17 `tools/jdk`, SDK 36 + NDK 28.2
-`tools/sdk`. Ядро: `make android-libs CHANNEL=prod`. Подпись: `android/key.properties`
-(keystore `/home/dsh/projects/.secrets/vitosamin-release.jks`, CN=Vitosamin).
+Релиз: поднять `version` в `pubspec.yaml`, закоммитить, поставить тег `vX.Y.Z` и
+запушить — Actions соберёт, подпишет и опубликует (см. `docs/RELEASING.md`).
+
+## Доступ к GitHub
+
+- OAuth-токен `gh` (scopes `repo`, `workflow`): `.sandbox/.gh-oauth-token`,
+  gh config — `.home/.config/gh`; git-креды — `.sandbox/.git-credentials-oauth`.
+- Секреты подписи в репозитории выставлены: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
+  `KEY_ALIAS`; keystore — `.secrets/vitosamin-release.jks` (CN=Vitosamin).
 
 ## Сделано (01.11.2026)
 
-- Главный экран: белый круг Hiddify заменён кнопкой-pill («Подключить/Отключить»,
-  спиннер, цвет по состоянию), активный сервер — та же полупрозрачная плитка
-  (`ActiveProxyFooter(embedded: true)`), статус без дубля «нажмите для подключения».
-- Переключение: ручной выбор — явный сигнал из списка прокси, а не догадка по списку
-  ядра (убран «пинг-понг» с ядром); пинг `0` («не измерено») не считается падением,
-  фейловер только по трём таймаутам, кулдаун 45 с; каждое переключение пишется в
-  журнал. Тесты селектора 23/23.
-- Обновления: проверка GitHub Releases при старте (раз в 12 ч) и в «О приложении»,
-  кнопка качает APK из релиза; константы — `vitosamin/vpn-client`.
-- CI `.github/workflows/release-apk.yml`: по тегу `v*` собирает и подписывает
-  universal + arm64 APK, публикует релиз с SHA256SUMS.
-- Документация, `server/` активации и README — в репозитории; отчёт —
-  `docs/impl-1.0.2.md`, скриншоты — `docs/screenshots/`.
+- Опубликован форк и релиз 1.0.2 (universal + arm64 APK, SHA256SUMS), подпись
+  проверена `apksigner` уже у скачанного из релиза файла.
+- Главный экран: белый круг Hiddify заменён кнопкой-pill, строка активного сервера
+  в тон карточке, статус без дубля.
+- Переключение: ручной выбор — явный сигнал из списка прокси, пинг `0` не считается
+  падением, смена только после трёх таймаутов (кулдаун 45 с), переключения пишутся
+  в журнал; тесты селектора 23/23.
+- Обновления: приложение проверяет GitHub Releases (раз в 12 ч и из «О приложении»)
+  и скачивает APK из релиза.
+- Документация и `server/` активации — в репозитории, отчёт — `docs/impl-1.0.2.md`.
 
 ## Следующий шаг
 
-- **GitHub:** токен пушит в существующие репозитории, но не создаёт новые и не
-  выставляет секреты Actions. Нужен шаг человека: форк `hiddify/hiddify-app` (владелец
-  vitosamin) и право `Secrets: Read and write` у токена (или classic-токен с
-  `repo`+`workflow`). Дальше: `bash /home/dsh/projects/.sandbox/publish-vitosamin.sh` —
-  переименует форк в `vpn-client`, запушит `main`+теги, выставит секреты, поставит тег
-  `v1.0.2` и дождётся сборки.
-- После релиза: на телефоне проверить установку 1.0.2 поверх 1.0.1 и автообновление.
+- Установить 1.0.2 на телефон с релиза и проверить: экран, что сервер не скачет,
+  установку поверх 1.0.1.
+- Следующая версия (1.0.3) должна сама предложить обновление на телефоне.
 
 ## Грабли и решения
 
+- `android-actions/setup-android@v3` падает на раннере (ставит удалённый пакет
+  `tools`) — workflow берёт SDK раннера и вызывает его `sdkmanager` напрямую.
+- `flutter test` целиком падает на 27 тестах из-за отсутствия `libsqlite3.so`
+  (drift); точечные тесты зелёные.
 - `~/.android` и `~/.config` только для чтения: `HOME=/home/dsh/projects/.home`,
-  `ANDROID_USER_HOME=…/.home/.android`; Gradle `-Duser.home` — в
-  `/home/dsh/projects/.gradle/gradle.properties`.
-- `flutter test` целиком падает на 27 тестах из-за отсутствия `libsqlite3.so` (drift),
-  это не наш код; точечные тесты зелёные.
-- APK universal ~171 МБ, arm64 ~61 МБ; versionCode 3 ставится поверх 1.0.1.
+  `ANDROID_USER_HOME=…/.home/.android`, Gradle `-Duser.home` в `.gradle/gradle.properties`.
+- Старый fine-grained токен (`.sandbox/.git-credentials`) не умеет создавать репозитории
+  и секреты — для публикации нужен OAuth-токен выше.
 
 ## Не закоммичено
 
