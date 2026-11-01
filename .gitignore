@@ -79,3 +79,6 @@ windows/sign.cer
 /key.pem
 /sign.pfx
 .ci-secrets-export/
+
+# Kotlin build cache
+android/.kotlin/
