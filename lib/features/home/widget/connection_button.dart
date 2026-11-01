@@ -282,7 +282,7 @@ class _ConnectionPill extends StatelessWidget {
     _Look.waiting ||
     _Look.hotReloading ||
     _Look.disconnecting => const [Color(0xFF5B79FF), Color(0xFF4257E0)],
-    _ => const [Color(0xFF5B79FF), Color(0xFF7A5BFF)],
+    _ => const [Color(0xFF5B79FF), Color(0xFF455FE9)],
   };
 
   @override
