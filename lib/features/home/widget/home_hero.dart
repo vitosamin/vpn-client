@@ -79,7 +79,7 @@ class HomeHero extends HookConsumerWidget {
                 // carries the state, the power glyph and the verb say what a tap does
                 const ConnectionButton(showLabel: false, variant: ConnectionButtonVariant.pill),
                 const Gap(10),
-                const ActiveProxyFooter(),
+                const ActiveProxyFooter(embedded: true),
                 if (profile != null) ...[const Gap(8), _SubscriptionCard(profile: profile)],
                 const Gap(12),
                 const _TelegramTile(),

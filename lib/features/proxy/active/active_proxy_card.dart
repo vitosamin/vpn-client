@@ -25,7 +25,11 @@ import 'package:hiddify/utils/custom_loggers.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class ActiveProxyFooter extends HookConsumerWidget with InfraLogger {
-  const ActiveProxyFooter({super.key});
+  const ActiveProxyFooter({super.key, this.embedded = false});
+
+  /// The home hero draws it on its own navy card: no outer margin, the translucent tile of the
+  /// hero instead of a separate surface, and light text colors.
+  final bool embedded;
 
   /// Same window as ConnectionButton's held connected look: a brief Disconnected
   /// blip on resume must not collapse this footer or the connect button jumps.
@@ -78,15 +82,36 @@ class ActiveProxyFooter extends HookConsumerWidget with InfraLogger {
     if (card == null) {
       return const SizedBox.shrink();
     }
-    return Card(
-      margin: const EdgeInsets.all(16),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!card.chain.isOff()) _ChainBand(card),
-          _ProxyRow(card, dead: health?.canSwitchToFastest ?? false),
-        ],
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!card.chain.isOff()) _ChainBand(card),
+        _ProxyRow(card, dead: health?.canSwitchToFastest ?? false),
+      ],
+    );
+    if (!embedded) {
+      return Card(margin: const EdgeInsets.all(16), clipBehavior: Clip.antiAlias, child: content);
+    }
+    // Inside the hero the row is a translucent tile of the same family as the subscription card:
+    // the theme is re-mapped to white-on-navy for this subtree only.
+    final theme = Theme.of(context);
+    return Theme(
+      data: theme.copyWith(
+        colorScheme: theme.colorScheme.copyWith(
+          surface: Colors.white.withValues(alpha: .07),
+          onSurface: Colors.white,
+          onSurfaceVariant: Colors.white70,
+          outline: Colors.white38,
+          primary: const Color(0xFF9DB0FF),
+          tertiary: const Color(0xFFFFC46B),
+          error: const Color(0xFFFF9B9B),
+        ),
+      ),
+      child: Material(
+        color: Colors.white.withValues(alpha: .07),
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: content,
       ),
     );
   }
