@@ -295,6 +295,7 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     if (!switched) return;
 
     _selector.switchedTo(target, DateTime.now());
+    loggy.info("priority auto-select: moved the traffic from [$previous] to [$target] ($reason)");
     _refreshStatus();
     if (reason == PrioritySwitchReason.failover && previous != null) {
       _notifyFailover(previous: previous, target: target);
