@@ -1,0 +1,11 @@
+# секреты и локальные данные — не в git
+.env
+data/
+*.log
+*.pid
+logs/
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
