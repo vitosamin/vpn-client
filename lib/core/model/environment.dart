@@ -20,10 +20,10 @@ enum Release {
 
   final String key;
 
-  /// Our fork has no update channel of its own, and the upstream appcast/github feeds would
-  /// offer Hiddify releases (a newer version number and a different app). Off for every
-  /// release until `Constants.appCastUrl`/`githubReleasesApiUrl` point at our own builds.
-  bool get allowCustomUpdateChecker => false;
+  /// The fork has its own update channel: GitHub Releases of the Vitosamin repository
+  /// (`Constants.githubReleasesApiUrl`). The app checks it on start and from About, and the
+  /// release asset is a signed APK, so a phone updates without a store.
+  bool get allowCustomUpdateChecker => true;
 
   static Release read() =>
       Release.values.firstOrNullWhere((e) => e.key == const String.fromEnvironment("release")) ?? Release.general;
