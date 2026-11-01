@@ -29,9 +29,15 @@
   соединение»;
 - круглая кнопка и painter остались для других мест, hero их больше не рисует.
 
+Активный сервер тоже стал частью карточки: у `ActiveProxyFooter` появился режим
+`embedded` — без внешнего `Card` с полями 16 px, с полупрозрачной плиткой hero и
+переопределёнными на белый/навы цветами поддерева. Раньше внутри синей карточки
+это был отдельный чёрный прямоугольник.
+
 Скриншоты: [home-disconnected.png](screenshots/home-disconnected.png),
-[home-connected.png](screenshots/home-connected.png) (рендер реального виджета
-в тесте, ru-локаль, тёмная тема).
+[home-connected.png](screenshots/home-connected.png),
+[home-connected-server.png](screenshots/home-connected-server.png) — рендер
+реального виджета в тесте, ru-локаль, тёмная тема.
 
 ## 2. Переключение серверов: выбранный держится
 
@@ -60,6 +66,10 @@
 
 Тесты: `test/features/proxy/priority_selector_test.dart` (23, включая новый
 сценарий «неизмеренный пинг не считается падением»).
+
+Каждое автоматическое переключение теперь пишется в журнал приложения:
+`priority auto-select: moved the traffic from [A] to [B] (failover)` — если
+дребезг вернётся, по логам видно причину и участников.
 
 ## 3. Обновления с телефона через GitHub Releases
 

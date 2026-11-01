@@ -1,7 +1,7 @@
 # STATE — vitosamin (клиент Vitosamin, форк Hiddify App)
 
-> Обновлено: 2026-11-01 02:40 (Europe/Kaliningrad)
-> Ветка: `main` · последний коммит: `7fcd849` «style(home): keep the connect pill in the brand blue»
+> Обновлено: 2026-11-01 02:55 (Europe/Kaliningrad)
+> Ветка: `main` · последний коммит: `a3dd22e` «docs: note the embedded server row and switch logging in the 1.0.2 report»
 > Версия: 1.0.2+3 (versionCode 3)
 
 ## Что это
@@ -36,14 +36,20 @@ flutter build apk --release --target-platform android-arm64
   указывают на `vitosamin/vpn-client`.
 - CI: `.github/workflows/release-apk.yml` — сборка по тегу `v*`, подпись секретами,
   публикация universal + arm64 APK и SHA256SUMS.
-- Документация, `server/` активации и README перенесены в репозиторий.
+- Активный сервер внутри hero — та же полупрозрачная плитка, без отдельной чёрной
+  карточки (`ActiveProxyFooter(embedded: true)`); каждое автопереключение пишется
+  в журнал приложения.
+- Документация, `server/` активации и README перенесены в репозиторий;
+  `docs/impl-1.0.2.md` — отчёт об изменениях.
 
 ## Следующий шаг
 
-- **GitHub:** токен на машине пушит в существующие репозитории, но не создаёт новые.
-  Нужно: пользователь делает форк `hiddify/hiddify-app` (владелец vitosamin), затем
-  переименовать его в `vpn-client`, запушить `main` + теги, выставить секреты
-  (KEYSTORE_BASE64/KEYSTORE_PASSWORD/KEY_ALIAS) и выпустить тег `v1.0.2`.
+- **GitHub:** токен пушит в существующие репозитории, но не создаёт новые и не
+  выставляет секреты Actions. Нужен один шаг человека: форк `hiddify/hiddify-app`
+  (владелец vitosamin) и право `Secrets: Read and write` у токена (или classic-токен
+  с `repo`+`workflow`). Дальше — `bash /home/dsh/projects/.sandbox/publish-vitosamin.sh`:
+  переименует форк в `vpn-client`, запушит `main`+теги, выставит секреты, поставит
+  тег `v1.0.2` и дождётся сборки.
 - После релиза: проверить на телефоне установку 1.0.2 поверх 1.0.1 и автообновление.
 
 ## Грабли и решения
