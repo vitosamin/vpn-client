@@ -1,8 +1,8 @@
 # STATE — vitosamin (клиент Vitosamin, форк Hiddify App)
 
-> Обновлено: 2026-11-01 11:40 (Europe/Kaliningrad)
+> Обновлено: 2026-11-01 12:45 (Europe/Kaliningrad)
 > https://github.com/vitosamin/vpn-client (публичный форк hiddify/hiddify-app)
-> Ветка `main`, версия 1.0.5+6; релизы 1.0.2–1.0.5 опубликованы ([v1.0.5](https://github.com/vitosamin/vpn-client/releases/tag/v1.0.5))
+> Ветка `main`, версия 1.0.6+7; релизы 1.0.2–1.0.6 опубликованы ([v1.0.6](https://github.com/vitosamin/vpn-client/releases/tag/v1.0.6))
 
 ## Что это
 
@@ -11,10 +11,9 @@ Android-клиент Vitosamin (3x-ui, VLESS/Reality), форк Hiddify App 5.3.
 
 ## Сборка и выпуск
 
-`source .env-android.sh && flutter build apk --release`; релиз — тег `vX.Y.Z`
-после поднятия `version` в `pubspec.yaml`, собирает Actions
-(`docs/RELEASING.md`). GitHub-доступ: `.sandbox/.gh-oauth-token`; keystore —
-`.secrets/vitosamin-release.jks`.
+`flutter build apk --release` (env: `.env-android.sh`); релиз — тег `vX.Y.Z` после
+поднятия `version` в `pubspec.yaml`, собирает Actions (`docs/RELEASING.md`).
+GitHub: `.sandbox/.gh-oauth-token`, keystore `.secrets/vitosamin-release.jks`.
 
 ## Сделано (01.11.2026)
 
@@ -26,19 +25,19 @@ Android-клиент Vitosamin (3x-ui, VLESS/Reality), форк Hiddify App 5.3.
   есть в списке; `ru_extra.txt`; прямой DNS Яндекс; плашка обновления на главной,
   проверка обновлений при каждом запуске.
 - 1.0.5: раздельная маршрутизация как на роутере владельца — через VPN идут только
-  сервисы из его пресета `singbox-manager` (23 сервиса, 2408 записей в
-  `assets/routing/services.json`), остальное напрямую; переключатель «Только нужные
-  сервисы через VPN» (по умолчанию вкл.) в «Настройки → Маршрутизация»; см.
-  `docs/impl-routing-split.md`.
+  сервисы из его пресета `singbox-manager` (23 сервиса, `assets/routing/services.json`),
+  остальное напрямую; переключатель «Только нужные сервисы через VPN» (вкл.).
+- 1.0.6: `preset:block-quic` (reject UDP/443, как `block_quic` на роутере) — QUIC уходил
+  мимо правил, из-за чего не грузились превью YouTube; в YouTube-сервис добавлены
+  `googleusercontent.com`, `gstatic.com`, `googleapis.com`.
 - Обновления: проверка GitHub Releases при каждом запуске и из «О приложении»,
   скачивание APK из релиза.
 
 ## Следующий шаг
 
-- Установить 1.0.5 (приложение предложит само или плашкой на главной; иначе
-  «О приложении → Проверить обновления»): проверить google.com, российские сайты и
-  сервисы из списка (YouTube, Telegram, Instagram…). Если сервис не открывается —
-  добавить его домены в `services.json` и выпустить 1.0.6.
+- Установить 1.0.6 и проверить: превью YouTube, ссылку `t.me` на мобильном интернете,
+  сервисы из списка. Если сервис не открывается — добавить его домены в
+  `services.json` и выпустить 1.0.7.
 - Если какой-то сервис не в списке — прислать его, добавить в пресет.
 - Повторный системный запрос VPN: нужен скриншот диалога и данные, нет ли второго
   VPN-приложения/always-on VPN. Код просит разрешение один раз через
