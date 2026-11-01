@@ -498,6 +498,13 @@ class _PinnedOptions extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        SwitchListTile.adaptive(
+          title: Text(routing.servicesOnly),
+          subtitle: Text(routing.servicesOnlyMsg),
+          value: ref.watch(ConfigOptions.servicesOnlyRouting),
+          onChanged: ref.read(ConfigOptions.servicesOnlyRouting.notifier).update,
+        ),
+        divider,
         _MenuOption(
           title: routing.balancerStrategy.title,
           selected: ref.watch(ConfigOptions.balancerStrategy),

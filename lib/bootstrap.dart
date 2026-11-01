@@ -25,6 +25,7 @@ import 'package:hiddify/features/profile/data/profile_data_providers.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:hiddify/features/route_rules/data/bundled_geo_rules.dart';
+import 'package:hiddify/features/route_rules/data/bundled_service_rules.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/features/system_tray/notifier/system_tray_notifier.dart';
 import 'package:hiddify/features/window/notifier/window_notifier.dart';
@@ -81,6 +82,10 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
   // core's config has plain RU domains and addresses, so the rule works with no network and no
   // GitHub. Reading them takes a few milliseconds and must not hold the app up; a failure leaves
   // the rule on its remote rule-set.
+  // The service preset of the split routing: the listed services go through the VPN, while the
+  // rest of the traffic stays direct (see effectiveRouteRules).
+  await _safeInit("bundled service rules", () => BundledServiceRules.load());
+
   await _safeInit("bundled geo rules", () async {
     final geo = await BundledGeoRules.load();
     Logger.bootstrap.info(

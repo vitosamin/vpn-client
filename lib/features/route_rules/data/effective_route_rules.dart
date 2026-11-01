@@ -1,4 +1,5 @@
 import 'package:hiddify/features/route_rules/data/bundled_geo_rules.dart';
+import 'package:hiddify/features/route_rules/data/bundled_service_rules.dart';
 import 'package:hiddify/features/route_rules/notifier/rules_notifier.dart';
 import 'package:hiddify/hiddifycore/generated/v2/config/route_rule.pb.dart';
 
@@ -13,7 +14,7 @@ import 'package:hiddify/hiddifycore/generated/v2/config/route_rule.pb.dart';
 ///
 /// It is the same match: sing-box rules with a name condition and an address condition match when
 /// either matches, so the pair covers exactly what the single rule did.
-List<Rule> effectiveRouteRules(List<Rule> rules) {
+List<Rule> effectiveRouteRules(List<Rule> rules, {bool servicesOnly = false}) {
   final effective = <Rule>[];
   for (final rule in rules) {
     final copy = rule.deepCopy()..listOrder = effective.length;
@@ -22,6 +23,26 @@ List<Rule> effectiveRouteRules(List<Rule> rules) {
     if (ranges != null) {
       effective.add(ranges..listOrder = effective.length);
     }
+  }
+  // Without the loaded preset the catch-alls would send everything direct, so the split only
+  // applies when the services are really there.
+  if (servicesOnly && BundledServiceRules.rules.isNotEmpty) {
+    // The router's own preset: the listed services go through the VPN, everything else direct.
+    // These rules are injected here, not kept in the user's list: the list stays the small,
+    // editable set, while the config gets the full preset in a fixed order.
+    for (final service in BundledServiceRules.rules) {
+      effective.add(service.deepCopy()..listOrder = effective.length);
+    }
+    // Every name the service rules did not catch goes direct, and resolves with the direct DNS.
+    effective.add(
+      Rule(name: "preset:direct-names", enabled: true, outbound: Outbound.direct, domainRegexes: [".*"])
+        ..listOrder = effective.length,
+    );
+    // A connection known only by its address (nothing to sniff) goes direct as well.
+    effective.add(
+      Rule(name: "preset:direct-ip", enabled: true, outbound: Outbound.direct, ipCidrs: ["0.0.0.0/0", "::/0"])
+        ..listOrder = effective.length,
+    );
   }
   return effective;
 }

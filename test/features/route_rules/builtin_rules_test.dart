@@ -331,8 +331,13 @@ void main() {
 
     testWidgets("switches a built-in rule from its row's switch", (tester) async {
       final container = await show(tester);
+      await tester.ensureVisible(find.text('Russian sites — direct'));
+      await tester.pumpAndSettle();
       final row = find.ancestor(of: find.text('Russian sites — direct'), matching: find.byType(ListTile));
-      await tester.tap(find.descendant(of: row, matching: find.byType(Switch)));
+      final toggle = find.descendant(of: row, matching: find.byType(Switch));
+      await tester.ensureVisible(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(toggle);
       await tester.pumpAndSettle();
       expect(container.read(rulesNotifierProvider).last.enabled, isFalse);
     });

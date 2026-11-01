@@ -468,7 +468,9 @@
           "enable": "On",
           "prefer": "Preferred",
           "only": "Exclusive"
-        }
+        },
+        "servicesOnly": "Only selected services through VPN",
+        "servicesOnlyMsg": "The services from the router preset go through the VPN; every other site stays direct. Turn it off to send all traffic through the VPN."
       },
       "dns": {
         "title": "DNS",
