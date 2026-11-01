@@ -1,8 +1,7 @@
 # STATE — vitosamin (клиент Vitosamin, форк Hiddify App)
 
 > Обновлено: 2026-11-01 02:55 (Europe/Kaliningrad)
-> Ветка: `main` · последний коммит: `a3dd22e` «docs: note the embedded server row and switch logging in the 1.0.2 report»
-> Версия: 1.0.2+3 (versionCode 3)
+> Ветка: `main` · версия 1.0.2+3 (versionCode 3) · дерево чистое
 
 ## Что это
 
@@ -31,11 +30,10 @@ flutter build apk --release --target-platform android-arm64
   (`proxy_pick_signal.dart`), а не догадка по списку ядра — убран источник «пинг-понга»
   с ядром; пинг `0` («не измерено») больше не считается падением, фейловер только по
   таймаутам (3 подряд, кулдаун 45 с). Тесты селектора 23/23.
-- Обновления: `Release.allowCustomUpdateChecker = true`, проверка GitHub Releases при
-  старте (раз в 12 ч) и в «О приложении», кнопка качает APK из релиза. Константы
-  указывают на `vitosamin/vpn-client`.
-- CI: `.github/workflows/release-apk.yml` — сборка по тегу `v*`, подпись секретами,
-  публикация universal + arm64 APK и SHA256SUMS.
+- Обновления: проверка GitHub Releases при старте (раз в 12 ч) и в «О приложении»,
+  кнопка качает APK из релиза; константы — `vitosamin/vpn-client`.
+- CI: `.github/workflows/release-apk.yml` — по тегу `v*` собирает и подписывает
+  universal + arm64 APK, публикует релиз с SHA256SUMS.
 - Активный сервер внутри hero — та же полупрозрачная плитка, без отдельной чёрной
   карточки (`ActiveProxyFooter(embedded: true)`); каждое автопереключение пишется
   в журнал приложения.
