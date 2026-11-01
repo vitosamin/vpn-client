@@ -76,7 +76,24 @@ void main() {
       expect(rule.outbound, Outbound.direct);
       expect(rule.ruleSets, isEmpty);
       expect(rule.domains, BundledGeoRules.instance.domains);
-      expect(rule.domainSuffixes, BundledGeoRules.instance.domainSuffixes);
+      expect(
+        rule.domainSuffixes,
+        [
+          ...BundledGeoRules.instance.domainSuffixes,
+          // the country list has no bare TLD entry: the rule adds them so every .ru site is direct
+          'ru',
+          'su',
+          'xn--p1ai',
+          'moscow',
+        ],
+      );
+    });
+
+    test('routes every Russian TLD direct even if the country list misses the site', () {
+      final rule = BuiltinRule.bypassRegion.rule(Region.ru);
+      expect(rule.domainSuffixes, containsAll(['ru', 'su', 'xn--p1ai', 'moscow']));
+      // the list itself has no bare "ru" entry, so this is what makes a missed .ru site direct
+      expect(BundledGeoRules.instance.domainSuffixes, isNot(contains('ru')));
     });
 
     test('stays a remote rule-set for every other region', () {

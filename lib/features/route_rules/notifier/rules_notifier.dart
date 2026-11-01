@@ -75,18 +75,38 @@ enum BuiltinRule {
         '$_geoUrl/block/geoip-phishing.srs',
       ],
     ),
-    bypassRegion =>
-      region == Region.ru && !BundledGeoRules.instance.isEmpty
-          ? Rule(
-              outbound: Outbound.direct,
-              domains: BundledGeoRules.instance.domains,
-              domainSuffixes: BundledGeoRules.instance.domainSuffixes,
-            )
-          : Rule(
-              outbound: Outbound.direct,
-              ruleSets: ['$_geoUrl/country/geosite-{region}.srs', '$_geoUrl/country/geoip-{region}.srs'],
-            ),
+    bypassRegion => _regionRule(region),
   }..name = key;
+
+  /// The region's bypass rule. Russia takes the lists bundled in the app: no network, no GitHub.
+  ///
+  /// The country list is not exhaustive (it has no bare `ru` suffix, for one), so the Russian
+  /// TLDs are added on top: a Russian site that the list misses still goes direct, and the rule
+  /// keeps working on `.ru` even if the assets could not be read. Other regions keep the remote
+  /// rule-set the core downloads, as before.
+  Rule _regionRule(Region region) {
+    if (region != Region.ru) {
+      return Rule(
+        outbound: Outbound.direct,
+        ruleSets: [
+          '$_geoUrl/country/geosite-{region}.srs',
+          '$_geoUrl/country/geoip-{region}.srs',
+        ],
+      );
+    }
+    return Rule(
+      outbound: Outbound.direct,
+      domains: BundledGeoRules.instance.domains,
+      domainSuffixes: [
+        ...BundledGeoRules.instance.domainSuffixes,
+        // the Russian TLDs: every `.ru`, `.su` and `.рф` site goes direct, listed or not
+        'ru',
+        'su',
+        'xn--p1ai',
+        'moscow',
+      ],
+    );
+  }
 }
 
 @riverpod

@@ -14,6 +14,7 @@ class PreferencesMigration with InfraLogger {
     final migrationSteps = <PreferencesMigrationStep>[
       PreferencesVersion1Migration(sharedPreferences),
       PreferencesVersion2Migration(sharedPreferences),
+      PreferencesVersion3Migration(sharedPreferences),
     ];
 
     if (currentVersion == migrationSteps.length) {
@@ -126,6 +127,35 @@ class PreferencesVersion2Migration extends PreferencesMigrationStep with InfraLo
         loggy.debug("setting [per_app_proxy_enabled] for [per_app_proxy_mode] = [$mode]");
         await sharedPreferences.setBool("per_app_proxy_enabled", true);
       }
+    }
+  }
+}
+
+/// 1.0.3: the direct DNS of the Russian region becomes a Russian resolver. The old default
+/// (1.1.1.1) is throttled or blocked on some Russian mobile networks, which left the sites the
+/// region rule sends direct without an answer. Only the old default is touched: a resolver the
+/// user chose is kept.
+class PreferencesVersion3Migration extends PreferencesMigrationStep with InfraLogger {
+  PreferencesVersion3Migration(super.sharedPreferences);
+
+  static const _oldDefault = {"udp://1.1.1.1", "1.1.1.1"};
+  static const _russian = "udp://77.88.8.8";
+
+  @override
+  Future<void> migrate() async {
+    // Profiles created before 1.0.1 kept the "Other" region the old detector wrote when the
+    // timezone named no country. For this build that means "the region rule does nothing", so
+    // such a profile is moved back to Russia once; a knowingly picked country is untouched.
+    var region = sharedPreferences.getString("region");
+    if (region == "other") {
+      loggy.info("region: [other] -> [ru] (the old detector's default)");
+      await sharedPreferences.setString("region", "ru");
+      region = "ru";
+    }
+    final dns = sharedPreferences.getString("direct-dns-address");
+    if ((region == null || region == "ru") && dns != null && _oldDefault.contains(dns)) {
+      loggy.info("direct DNS for Russia: [$dns] -> [$_russian]");
+      await sharedPreferences.setString("direct-dns-address", _russian);
     }
   }
 }

@@ -81,7 +81,13 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
   // core's config has plain RU domains and addresses, so the rule works with no network and no
   // GitHub. Reading them takes a few milliseconds and must not hold the app up; a failure leaves
   // the rule on its remote rule-set.
-  await _safeInit("bundled geo rules", () => BundledGeoRules.load());
+  await _safeInit("bundled geo rules", () async {
+    final geo = await BundledGeoRules.load();
+    Logger.bootstrap.info(
+      "bundled geo: ${geo.domains.length} domains, ${geo.domainSuffixes.length} suffixes, "
+      "${geo.ipCidrs.length} ranges",
+    );
+  });
 
   // The log level decides this now. There is no second debug switch to keep in
   // sync, and the core reaches the same conclusion from the same value.
