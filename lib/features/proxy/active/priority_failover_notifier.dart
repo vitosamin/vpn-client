@@ -6,8 +6,8 @@ import 'package:hiddify/core/notification/in_app_notification_controller.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
-import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:hiddify/features/proxy/active/priority_selector.dart';
+import 'package:hiddify/features/proxy/active/proxy_pick_signal.dart';
 import 'package:hiddify/features/proxy/data/proxy_data_providers.dart';
 import 'package:hiddify/features/proxy/data/proxy_repository.dart';
 import 'package:hiddify/features/proxy/model/proxy_entity.dart';
@@ -24,11 +24,7 @@ class PriorityAutoSelectStatus {
   const PriorityAutoSelectStatus.following({required this.activeTag, required this.priority, required this.total})
     : following = true;
 
-  const PriorityAutoSelectStatus.idle()
-    : activeTag = null,
-      priority = null,
-      total = null,
-      following = false;
+  const PriorityAutoSelectStatus.idle() : activeTag = null, priority = null, total = null, following = false;
 
   /// The server the selector keeps active; null when it does not manage the traffic.
   final String? activeTag;
@@ -95,10 +91,6 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
   /// decision is re-evaluated.
   static const probeInterval = Duration(seconds: 15);
 
-  /// After a switch the core's list needs a moment to show it; a mismatch
-  /// within this window is not a hand pick.
-  static const _switchGrace = Duration(seconds: 8);
-
   final _selector = PrioritySelector();
   Timer? _ticker;
   bool _connected = false;
@@ -106,8 +98,6 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
   bool _outageAnnounced = false;
   String? _profileId;
   List<PriorityServer> _servers = const [];
-  String? _pendingTag;
-  DateTime? _pendingSince;
   bool _switching = false;
   int _probeCursor = 0;
   int _otherProbeCursor = 0;
@@ -116,8 +106,8 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
   PriorityAutoSelectStatus build() {
     ref.listen(connectionNotifierProvider, (_, next) => _onConnection(next.valueOrNull));
     ref.listen(allProxiesNotifierProvider, (_, next) => _onAllProxies(next.valueOrNull));
-    ref.listen(mainOutboundsNotifierProvider, (_, next) => _onMainOutbounds(next.valueOrNull));
     ref.listen(activeProfileProvider, (_, next) => _onProfile(next.valueOrNull?.id));
+    ref.listen(proxyPickSignalProvider, (_, next) => _onUserPick(next));
 
     ref.onDispose(() => _ticker?.cancel());
 
@@ -178,7 +168,6 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
       _initialProbed = true;
       unawaited(_probeAll());
     }
-    _reconcileCorePick();
     if (_selector.currentTag == null) {
       // Nothing chosen yet: pick the first alive server as soon as the delays
       // are known.
@@ -188,43 +177,18 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     }
   }
 
-  void _onMainOutbounds(OutboundGroupList? list) {
-    if (!_connected || list == null) return;
-    _reconcileCorePick(list);
-  }
-
-  /// Detects a hand pick in the proxies page. The notifier must not fight the
-  /// user: a picked server is kept while it answers, a picked group suspends
-  /// the priority selection until the next connection.
-  void _reconcileCorePick([OutboundGroupList? list]) {
-    final currentTag = _selector.currentTag;
-    if (currentTag == null) return;
-    final data = list ?? ref.read(mainOutboundsNotifierProvider).valueOrNull;
-    if (data == null || data.items.isEmpty) return;
-    final main = data.items.first;
-    if (main.items.isEmpty) return;
-    final picked = main.items.first;
-
-    if (picked.tag == currentTag) {
-      _pendingTag = null;
-      return;
-    }
-    if (_pendingTag != null && picked.tag == _pendingTag) {
-      // The core picked up our own switch.
-      _pendingTag = null;
-      return;
-    }
-    if (_selector.suspended) return;
+  /// The user tapped a server or a group in the proxies page. This is the only source of a hand
+  /// pick: the core's own reports are not used for that any more, so its late or stale list cannot
+  /// make the auto-selection think the user took over and start a fight over the servers.
+  void _onUserPick(ProxyPick? pick) {
+    if (pick == null) return;
     final now = DateTime.now();
-    final pendingSince = _pendingSince;
-    if (pendingSince != null && now.difference(pendingSince) < _switchGrace) return;
-
-    if (picked.isGroup) {
-      loggy.info("priority auto-select: the user picked the [${picked.tag}] group, suspending");
+    if (pick.kind == ProxyPickKind.group) {
+      loggy.info("priority auto-select: the user picked the [${pick.tag}] group, suspending");
       _selector.suspend();
     } else {
-      loggy.info("priority auto-select: the user picked [${picked.tag}] by hand");
-      _selector.userPicked(picked.tag, now);
+      loggy.info("priority auto-select: the user picked [${pick.tag}] by hand");
+      _selector.userPicked(pick.tag, now);
     }
     _refreshStatus();
   }
@@ -232,8 +196,6 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
   void _reset() {
     _selector.reset();
     _servers = const [];
-    _pendingTag = null;
-    _pendingSince = null;
     _switching = false;
     _initialProbed = false;
     _outageAnnounced = false;
@@ -309,9 +271,7 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
       _outageAnnounced = false;
     }
     if (!decision.shouldSwitch) {
-      if (decision.hold == PriorityHoldReason.noAliveServer &&
-          _selector.currentTag != null &&
-          !_outageAnnounced) {
+      if (decision.hold == PriorityHoldReason.noAliveServer && _selector.currentTag != null && !_outageAnnounced) {
         // Every server is down: say so once and keep the traffic where it is
         // instead of hopping between dead servers.
         _announceNoConnection();
@@ -324,7 +284,6 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     final previous = _selector.currentTag;
     final reason = decision.reason!;
     _switching = true;
-    _pendingSince = DateTime.now();
     final result = await _repo.selectProxy(selectGroupTag, target).run();
     _switching = false;
 
@@ -336,7 +295,6 @@ class PriorityAutoSelectNotifier extends _$PriorityAutoSelectNotifier with AppLo
     if (!switched) return;
 
     _selector.switchedTo(target, DateTime.now());
-    _pendingTag = target;
     _refreshStatus();
     if (reason == PrioritySwitchReason.failover && previous != null) {
       _notifyFailover(previous: previous, target: target);

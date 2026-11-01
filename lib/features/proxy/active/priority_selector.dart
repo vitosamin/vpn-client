@@ -48,6 +48,10 @@ enum PriorityHoldReason {
   /// The user picked this server by hand; automatic switching leaves it alone until it fails.
   manualPick,
 
+  /// The active server's ping is unknown ("not measured yet"), so there is no
+  /// evidence of a failure. It stays, instead of being counted as dead.
+  unknownPing,
+
   /// The active server looks down, but not for long enough yet (hysteresis).
   waitingForFailover,
 
@@ -60,9 +64,7 @@ enum PriorityHoldReason {
 
 /// What [PrioritySelector.evaluate] decided for this step.
 class PriorityDecision {
-  const PriorityDecision.keep(PriorityHoldReason this.hold)
-    : targetTag = null,
-      reason = null;
+  const PriorityDecision.keep(PriorityHoldReason this.hold) : targetTag = null, reason = null;
 
   const PriorityDecision.change(String this.targetTag, PrioritySwitchReason this.reason) : hold = null;
 
@@ -106,12 +108,17 @@ class PriorityDecision {
 class PrioritySelector {
   PrioritySelector({
     bool Function(int delay)? isAlive,
+    bool Function(int delay)? isDead,
     this.failThreshold = 3,
     this.switchCooldown = const Duration(seconds: 45),
   }) : assert(failThreshold > 0),
-       _isAlive = isAlive ?? ConnectionConst.isValidDelay;
+       _isAlive = isAlive ?? ConnectionConst.isValidDelay,
+       _isDead = isDead ?? ConnectionConst.isDeadDelay;
 
   final bool Function(int delay) _isAlive;
+
+  /// Whether a delay is an observed failure (a timeout) rather than "not measured".
+  final bool Function(int delay) _isDead;
 
   /// How many evaluations in a row the active server must look down before the
   /// traffic moves away. With the notifier's 15-second steps this is ~45 s, so a
@@ -205,6 +212,14 @@ class PrioritySelector {
       // priority or a faster one is available: only unavailability moves it.
       _invalidStreak = 0;
       return const PriorityDecision.keep(PriorityHoldReason.activeAlive);
+    }
+
+    // A ping of 0 means "not measured yet", not "dead". Counting it as a
+    // failure made the app leave a working server on its first unknown
+    // snapshots; only a measured timeout is evidence.
+    if (!_isDead(servers[currentIndex].delay)) {
+      _invalidStreak = 0;
+      return const PriorityDecision.keep(PriorityHoldReason.unknownPing);
     }
 
     // The active server does not answer.

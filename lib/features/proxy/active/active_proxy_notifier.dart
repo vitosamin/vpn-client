@@ -9,6 +9,7 @@ import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/utils/throttler.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
+import 'package:hiddify/features/proxy/active/proxy_pick_signal.dart';
 import 'package:hiddify/features/proxy/data/proxy_data_providers.dart';
 import 'package:hiddify/features/proxy/data/proxy_repository.dart';
 import 'package:hiddify/features/proxy/model/connection_health.dart';
@@ -62,9 +63,7 @@ class IpInfoNotifier extends _$IpInfoNotifier with AppLogger {
     }
 
     _forceCheck = false;
-    final customIpInfoUrl = _ipinfoUrlFromHeaders(
-      ref.watch(activeProfileProvider).valueOrNull?.populatedHeaders,
-    );
+    final customIpInfoUrl = _ipinfoUrlFromHeaders(ref.watch(activeProfileProvider).valueOrNull?.populatedHeaders);
     final info = await ref
         .watch(proxyRepositoryProvider)
         .getCurrentIpInfo(cancelToken, customIpInfoUrl: customIpInfoUrl)
@@ -198,11 +197,17 @@ class ActiveProxyNotifier extends _$ActiveProxyNotifier with AppLogger {
     if (group == null) return;
     await ref.read(hapticServiceProvider.notifier).lightImpact();
     final switched = await ref.read(proxyRepositoryProvider).selectProxy(group, lowestGroupTag).run();
-    switched.match((err) {
-      loggy.warning("error switching to the fastest proxy", err);
-      final t = ref.read(translationsProvider).requireValue;
-      ref.read(inAppNotificationControllerProvider).showErrorToast(t.pages.proxies.switchFailed);
-    }, (_) {});
+    switched.match(
+      (err) {
+        loggy.warning("error switching to the fastest proxy", err);
+        final t = ref.read(translationsProvider).requireValue;
+        ref.read(inAppNotificationControllerProvider).showErrorToast(t.pages.proxies.switchFailed);
+      },
+      (_) {
+        // "Fastest" is a group pick: the priority selection must not fight it.
+        ref.read(proxyPickSignalProvider.notifier).pickedGroup(lowestGroupTag);
+      },
+    );
   }
 
   final _urlTestThrottler = Throttler(const Duration(seconds: 1));

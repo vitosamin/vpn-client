@@ -165,4 +165,8 @@ abstract class ConnectionConst {
 
   /// Whether a url-test [delay] (ms) represents a live, usable connection.
   static bool isValidDelay(int delay) => delay > 0 && delay < maxDelay;
+
+  /// Whether a url-test [delay] (ms) is a measured failure (a timeout), as opposed
+  /// to `0`, which only means "not measured yet".
+  static bool isDeadDelay(int delay) => delay >= maxDelay;
 }

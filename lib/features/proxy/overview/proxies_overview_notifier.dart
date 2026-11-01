@@ -9,6 +9,7 @@ import 'package:hiddify/core/notification/in_app_notification_controller.dart';
 import 'package:hiddify/core/preferences/preferences_provider.dart';
 import 'package:hiddify/core/utils/preferences_utils.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
+import 'package:hiddify/features/proxy/active/proxy_pick_signal.dart';
 import 'package:hiddify/features/proxy/data/proxy_data_providers.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 import 'package:hiddify/hiddifycore/init_signal.dart';
@@ -239,6 +240,15 @@ class ProxiesOverviewNotifier extends _$ProxiesOverviewNotifier with AppLogger {
         })
         .run();
     if (!selected) return;
+    // Tell the priority auto-selection what the user did, so it steps aside for a group pick and
+    // keeps a hand-picked server instead of guessing from the core's reports.
+    final pickedGroup = outbounds.items.where((e) => e.tag == outboundTag).firstOrNull?.isGroup ?? false;
+    final picks = ref.read(proxyPickSignalProvider.notifier);
+    if (pickedGroup) {
+      picks.pickedGroup(outboundTag);
+    } else {
+      picks.pickedServer(outboundTag);
+    }
     final row = outbounds.items.indexWhere((e) => e.tag == outboundTag);
     if (row != -1) _pinned = (tag: outboundTag, index: row);
     final newselected = outbounds.items.where((e) => e.tag == outboundTag).firstOrNull;

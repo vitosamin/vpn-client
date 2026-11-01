@@ -185,13 +185,21 @@ void main() {
       expect(decision.reason, PrioritySwitchReason.failover);
     });
 
-    test("counts an unmeasured ping as unavailable", () {
+    test("waits while the active ping is not measured instead of counting it as dead", () {
       final selector = _selector();
       selector.evaluate(_servers([(_a, _alive), (_b, _alive)]), now: _t0);
       selector.switchedTo(_a, _t0);
 
-      _failThree(selector, [(_a, _unknown), (_b, _alive)]);
-      expect(selector.evaluate(_servers([(_a, _unknown), (_b, _alive)]), now: _at(60)).targetTag, _b);
+      // 0 is "not measured yet", not a timeout: it must not move the traffic.
+      for (final seconds in [15, 30, 45, 60, 90]) {
+        final decision = selector.evaluate(_servers([(_a, _unknown), (_b, _alive)]), now: _at(seconds));
+        expect(decision.shouldSwitch, isFalse);
+        expect(decision.hold, PriorityHoldReason.unknownPing);
+      }
+
+      // Once the core really reports timeouts, the three strikes start from zero.
+      _failThree(selector, [(_a, _dead), (_b, _alive)]);
+      expect(selector.evaluate(_servers([(_a, _dead), (_b, _alive)]), now: _at(105)).targetTag, _b);
     });
 
     test("keeps the active server when every server is down", () {
