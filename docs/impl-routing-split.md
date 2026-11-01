@@ -14,7 +14,7 @@ VPN весь трафик, из-за чего посторонние сайты 
 | Источник | Что |
 |---|---|
 | `enabled_geo` набора (21 тег) | Twitter, Meta, TikTok, Discord, Viber, Netflix, Twitch, TMDB, RuTracker, GitHub, Intel, Notion, Speedtest, Telegram, Facebook, Instagram, OpenAI, WhatsApp, Spotify |
-| свои списки владельца | `YOUTUBE` (+ geosite-youtube), `CloudFMy` (+ geosite-cloudflare), `Block` (355 доменов), `AI` (OpenAI, Claude, Gemini, Perplexity и т.п.) |
+| свои списки владельца | `YOUTUBE` (+ geosite-youtube, `googleusercontent.com`, `gstatic.com`, `googleapis.com` — картинки и статика), `CloudFMy` (+ geosite-cloudflare), `Block` (355 доменов), `AI` (OpenAI, Claude, Gemini, Perplexity и т.п.) |
 | Telegram | добавлены его сети (`149.154.160.0/20`, `91.108.x`) — без них часть Telegram уходила бы напрямую |
 | `Ru` | домены добавлены в `assets/geo/ru_extra.txt` (правило России и так пускает `.ru`/`.su` напрямую) |
 
@@ -25,6 +25,9 @@ VPN весь трафик, из-за чего посторонние сайты 
 
 `effectiveRouteRules(..., servicesOnly: true)` добавляет после правил приложения:
 
+0. `preset:block-quic` — reject UDP/443. Как и в роутере (`block_quic`), QUIC
+   блокируется, приложения откатываются на TCP: иначе UDP-запрос картинок уходил
+   мимо правил (прямо) и превью YouTube не грузились, хотя видео шло;
 1. по правилу `preset:svc:<tag>` на сервис — `outbound: proxy`, домены/суффиксы/CIDR;
 2. `preset:direct-names` — `outbound: direct`, `domain_regex: [".*"]`, последним:
    всё, что не поймали сервисы, идёт напрямую; ядро добавляет к нему DNS-правило, поэтому

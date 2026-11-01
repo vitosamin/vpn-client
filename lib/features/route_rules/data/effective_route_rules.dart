@@ -27,6 +27,18 @@ List<Rule> effectiveRouteRules(List<Rule> rules, {bool servicesOnly = false}) {
   // Without the loaded preset the catch-alls would send everything direct, so the split only
   // applies when the services are really there.
   if (servicesOnly && BundledServiceRules.rules.isNotEmpty) {
+    // The router's preset blocks QUIC as well: a UDP/443 connection that goes direct is what
+    // breaks YouTube thumbnails while the TCP video still plays. Blocking it makes every app
+    // fall back to TCP, and the service rules then send that TCP through the VPN.
+    effective.add(
+      Rule(
+        name: "preset:block-quic",
+        enabled: true,
+        outbound: Outbound.block,
+        network: Network.udp,
+        portRanges: ["443"],
+      )..listOrder = effective.length,
+    );
     // The router's own preset: the listed services go through the VPN, everything else direct.
     // These rules are injected here, not kept in the user's list: the list stays the small,
     // editable set, while the config gets the full preset in a fixed order.

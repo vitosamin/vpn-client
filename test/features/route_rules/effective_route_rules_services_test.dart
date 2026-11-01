@@ -21,6 +21,8 @@ void main() {
     final names = [for (final rule in rules) rule.name];
 
     expect(names.first, "builtin:bypassRegion");
+    expect(names, contains("preset:block-quic"));
+    expect(names.indexOf("preset:block-quic"), lessThan(names.indexOf("preset:svc:youtube")));
     expect(names, contains("preset:svc:youtube"));
     expect(names, contains("preset:svc:telegram"));
     // the catch-alls are last, so every service rule wins first
@@ -30,7 +32,12 @@ void main() {
     final youtube = rules.firstWhere((rule) => rule.name == "preset:svc:youtube");
     expect(youtube.outbound, Outbound.proxy);
     expect(youtube.domains, contains("youtube.com"));
-    expect(youtube.domainSuffixes, contains("googlevideo.com"));
+    expect(youtube.domainSuffixes, containsAll(["googlevideo.com", "ytimg.com", "ggpht.com", "googleusercontent.com", "gstatic.com"]));
+
+    final quic = rules.firstWhere((rule) => rule.name == "preset:block-quic");
+    expect(quic.outbound, Outbound.block);
+    expect(quic.network, Network.udp);
+    expect(quic.portRanges, contains("443"));
 
     final directNames = rules.firstWhere((rule) => rule.name == "preset:direct-names");
     expect(directNames.outbound, Outbound.direct);
