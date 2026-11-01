@@ -48,11 +48,23 @@ _Look _lookOf(AsyncValue<ConnectionStatus> status) => switch (status) {
   _ => _Look.loading,
 };
 
+/// How [ConnectionButton] is drawn.
+enum ConnectionButtonVariant {
+  /// The round "eclipse" button of the upstream home screen.
+  circle,
+
+  /// A full-width rounded action: the Vitosamin home uses it instead of the big white circle.
+  pill,
+}
+
 class ConnectionButton extends HookConsumerWidget {
-  const ConnectionButton({super.key, this.showLabel = true});
+  const ConnectionButton({super.key, this.showLabel = true, this.variant = ConnectionButtonVariant.circle});
 
   /// The home hero draws the status itself, so it turns the label under the circle off.
   final bool showLabel;
+
+  /// The shape of the control: the upstream circle, or the hero's action pill.
+  final ConnectionButtonVariant variant;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,6 +100,57 @@ class ConnectionButton extends HookConsumerWidget {
     final showHealth = ref.read(bottomSheetsNotifierProvider.notifier).showConnectionHealth;
 
     const buttonTheme = ConnectionButtonTheme.light;
+    final label = switch (look) {
+      _Look.loading => "",
+      _Look.disconnected => t.connection.tapToConnect,
+      _Look.connecting => t.connection.connecting,
+      _Look.waiting => t.connection.waiting,
+      _Look.noProxies => t.connection.noAvailableProxies,
+      // connected says the traffic gets through; when it does not, say what stops it
+      _Look.connected when degraded => health!.pick == HealthState.failed ? h.pickDead : h.hopFailed(chain: chainName),
+      _Look.connected when hopPending => h.hopPending(chain: chainName),
+      _Look.connected => t.connection.connected,
+      _Look.hotReloading => t.connection.hotReloading,
+      _Look.disconnecting => t.connection.disconnecting,
+      _Look.failed => t.connection.failed,
+    };
+    final hint = look == _Look.failed ? t.connection.tapToRetry : null;
+    final buttonColor = switch (look) {
+      _Look.connected when degraded => _degradedColor,
+      // the traffic waits for the chain hop: still on its way
+      _Look.connected when hopPending => const Color(0xFF455FE9),
+      _Look.connected => buttonTheme.connectedColor!,
+      _Look.noProxies => const Color.fromARGB(255, 185, 176, 103),
+      _Look.failed => Colors.red,
+      // the logo's own blue while the connection is on its way
+      _Look.connecting || _Look.waiting || _Look.hotReloading || _Look.disconnecting => const Color(0xFF455FE9),
+      _ => buttonTheme.idleColor!,
+    };
+
+    if (variant == ConnectionButtonVariant.pill) {
+      return _ConnectionPill(
+        look: look,
+        onTap: onTap,
+        label: switch (look) {
+          _Look.disconnected => t.connection.connect,
+          _Look.connected => t.connection.disconnect,
+          _Look.connecting => t.connection.connecting,
+          _Look.waiting => t.connection.waiting,
+          _Look.hotReloading => t.connection.hotReloading,
+          _Look.disconnecting => t.connection.disconnecting,
+          _Look.noProxies => t.connection.noAvailableProxies,
+          _Look.failed => t.connection.tapToRetry,
+          _Look.loading => "",
+        },
+        hint: hint,
+        degraded: degraded,
+        onErrorDetails: failure == null
+            ? null
+            : () => ref.read(dialogNotifierProvider.notifier).showCustomAlertFromErr(failure.present(t)),
+        errorDetailsLabel: t.connection.errorDetails,
+      );
+    }
+
     return _ConnectionButton(
       look: look,
       onTap: onTap,
@@ -97,22 +160,8 @@ class ConnectionButton extends HookConsumerWidget {
       errorDetailsLabel: t.connection.errorDetails,
       download: stats?.downlink.toInt() ?? 0,
       upload: stats?.uplink.toInt() ?? 0,
-      label: switch (look) {
-        _Look.loading => "",
-        _Look.disconnected => t.connection.tapToConnect,
-        _Look.connecting => t.connection.connecting,
-        _Look.waiting => t.connection.waiting,
-        _Look.noProxies => t.connection.noAvailableProxies,
-        // connected says the traffic gets through; when it does not, say what stops it
-        _Look.connected when degraded =>
-          health!.pick == HealthState.failed ? h.pickDead : h.hopFailed(chain: chainName),
-        _Look.connected when hopPending => h.hopPending(chain: chainName),
-        _Look.connected => t.connection.connected,
-        _Look.hotReloading => t.connection.hotReloading,
-        _Look.disconnecting => t.connection.disconnecting,
-        _Look.failed => t.connection.failed,
-      },
-      hint: look == _Look.failed ? t.connection.tapToRetry : null,
+      label: label,
+      hint: hint,
       chain: chainType != null && {_Look.connected, _Look.noProxies, _Look.waiting}.contains(look)
           ? (
               type: chainType,
@@ -123,17 +172,7 @@ class ConnectionButton extends HookConsumerWidget {
           : null,
       onChain: showHealth,
       onLabel: degraded || hopPending ? showHealth : null,
-      buttonColor: switch (look) {
-        _Look.connected when degraded => _degradedColor,
-        // the traffic waits for the chain hop: still on its way
-        _Look.connected when hopPending => const Color(0xFF455FE9),
-        _Look.connected => buttonTheme.connectedColor!,
-        _Look.noProxies => const Color.fromARGB(255, 185, 176, 103),
-        _Look.failed => Colors.red,
-        // the logo's own blue while the connection is on its way
-        _Look.connecting || _Look.waiting || _Look.hotReloading || _Look.disconnecting => const Color(0xFF455FE9),
-        _ => buttonTheme.idleColor!,
-      },
+      buttonColor: buttonColor,
       showLabel: showLabel,
     );
   }
@@ -198,6 +237,143 @@ class ConnectionButton extends HookConsumerWidget {
     if (await dialogs.showExperimentalFeatureNotice()) {
       await ref.read(connectionNotifierProvider.notifier).toggleConnection();
     }
+  }
+}
+
+/// The hero's connect action: one wide rounded pill instead of the upstream white circle.
+///
+/// It carries the same state as the circle (the core's status decides the label, the tap and the
+/// colors) but reads as a normal primary button: a power glyph, a short verb, no big white disc.
+class _ConnectionPill extends StatelessWidget {
+  const _ConnectionPill({
+    required this.look,
+    required this.onTap,
+    required this.label,
+    required this.hint,
+    required this.degraded,
+    required this.onErrorDetails,
+    required this.errorDetailsLabel,
+  });
+
+  final _Look look;
+  final VoidCallback? onTap;
+  final String label;
+  final String? hint;
+
+  /// Connected, but the traffic does not get through: amber, like the circle.
+  final bool degraded;
+  final VoidCallback? onErrorDetails;
+  final String errorDetailsLabel;
+
+  static const _radius = 18.0;
+  static const _height = 58.0;
+
+  bool get _busy => switch (look) {
+    _Look.connecting || _Look.waiting || _Look.hotReloading || _Look.disconnecting => true,
+    _ => false,
+  };
+
+  List<Color> get _colors => switch (look) {
+    _Look.connected when degraded => const [Color(0xFFE3A63A), Color(0xFFB97B1E)],
+    _Look.connected => const [Color(0xFF3AAE72), Color(0xFF1F7A52)],
+    _Look.failed => const [Color(0xFFE05B5B), Color(0xFFB03A4A)],
+    _Look.noProxies => const [Color(0xFFD9A441), Color(0xFFB07A22)],
+    _Look.connecting ||
+    _Look.waiting ||
+    _Look.hotReloading ||
+    _Look.disconnecting => const [Color(0xFF5B79FF), Color(0xFF4257E0)],
+    _ => const [Color(0xFF5B79FF), Color(0xFF7A5BFF)],
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = _colors;
+    final radius = BorderRadius.circular(_radius);
+    final failed = look == _Look.failed;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          button: true,
+          enabled: onTap != null,
+          label: label,
+          hint: hint,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+              boxShadow: [
+                BoxShadow(color: colors.first.withValues(alpha: .32), blurRadius: 26, offset: const Offset(0, 10)),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                key: const ValueKey('home_connection_button_pill'),
+                borderRadius: radius,
+                onTap: onTap,
+                child: SizedBox(
+                  height: _height,
+                  width: double.infinity,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), shape: BoxShape.circle),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: _busy
+                              ? const Padding(
+                                  key: ValueKey('pill-progress'),
+                                  padding: EdgeInsets.all(8),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                                  ),
+                                )
+                              : Icon(
+                                  key: const ValueKey('pill-icon'),
+                                  failed ? Icons.refresh_rounded : Icons.power_settings_new_rounded,
+                                  size: 20,
+                                  color: Colors.white,
+                                ),
+                        ),
+                      ),
+                      const Gap(10),
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: .2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (failed && onErrorDetails != null) ...[
+          const Gap(4),
+          TextButton.icon(
+            onPressed: onErrorDetails,
+            icon: const Icon(Icons.info_outline_rounded, size: 16),
+            label: Text(errorDetailsLabel),
+            style: TextButton.styleFrom(foregroundColor: Colors.white70),
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -385,10 +561,7 @@ class _ConnectionButton extends HookWidget {
                   shape: const CircleBorder(),
                   color: Colors.transparent,
                   clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    focusColor: Colors.grey,
-                    onTap: onTap,
-                  ),
+                  child: InkWell(focusColor: Colors.grey, onTap: onTap),
                 ),
                 // the error badge opens what went wrong
                 if (look == _Look.failed && onErrorDetails != null)

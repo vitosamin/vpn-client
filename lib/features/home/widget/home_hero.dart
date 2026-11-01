@@ -74,17 +74,11 @@ class HomeHero extends HookConsumerWidget {
                 const Gap(18),
                 // the status is drawn here, the button below only acts
                 _StatusBlock(state: state),
-                const Gap(12),
-                Center(
-                  child: DefaultTextStyle.merge(
-                    style: const TextStyle(color: Colors.white),
-                    child: Theme(
-                      data: _buttonTheme(Theme.of(context)),
-                      child: const ConnectionButton(showLabel: false),
-                    ),
-                  ),
-                ),
-                const Gap(8),
+                const Gap(16),
+                // a normal primary action instead of the big white circle: the brand gradient
+                // carries the state, the power glyph and the verb say what a tap does
+                const ConnectionButton(showLabel: false, variant: ConnectionButtonVariant.pill),
+                const Gap(10),
                 const ActiveProxyFooter(),
                 if (profile != null) ...[const Gap(8), _SubscriptionCard(profile: profile)],
                 const Gap(12),
@@ -96,16 +90,6 @@ class HomeHero extends HookConsumerWidget {
       ),
     );
   }
-
-  /// The button's own label is off; the status block above it owns the words, so the button only
-  /// needs the theme colors that make its hint legible on navy.
-  static ThemeData _buttonTheme(ThemeData theme) => theme.copyWith(
-    colorScheme: theme.colorScheme.copyWith(
-      onSurface: Colors.white,
-      onSurfaceVariant: Colors.white70,
-      outline: Colors.white24,
-    ),
-  );
 
   /// What the hero says about the connection. The words come from the status translations, so
   /// the hero and the rest of the app never disagree.
@@ -124,8 +108,9 @@ class HomeHero extends HookConsumerWidget {
       return (title: t.connection.failed, subtitle: t.connection.tapToRetry, color: _Hero.bad);
     }
     return switch (value) {
-      null => (title: t.pages.home.notConnected, subtitle: t.connection.tapToConnect, color: _Hero.idle),
-      Disconnected() => (title: t.pages.home.notConnected, subtitle: t.connection.tapToConnect, color: _Hero.idle),
+      // the pill below says "connect", so the status does not repeat it
+      null => (title: t.pages.home.notConnected, subtitle: null, color: _Hero.idle),
+      Disconnected() => (title: t.pages.home.notConnected, subtitle: null, color: _Hero.idle),
       Connecting() => (title: t.connection.connecting, subtitle: null, color: _Hero.accent),
       Waiting() => (title: t.connection.connecting, subtitle: t.connection.waiting, color: _Hero.accent),
       HotReloading() => (title: t.connection.hotReloading, subtitle: null, color: _Hero.accent),
@@ -138,7 +123,7 @@ class HomeHero extends HookConsumerWidget {
             : t.connection.health.hopFailed(chain: health.chain?.present(t) ?? ''),
         color: const Color(0xFFE3A63A),
       ),
-      Connected() => (title: t.connection.connected, subtitle: null, color: _Hero.ok),
+      Connected() => (title: t.connection.connected, subtitle: t.pages.home.protectedConnection, color: _Hero.ok),
     };
   }
 }
