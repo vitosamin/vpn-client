@@ -1,3 +1,5 @@
+> **Обновлено в 1.0.2:** круг заменён кнопкой-pill, см. [impl-1.0.2.md](impl-1.0.2.md). Ниже — отчёт о версии 1.0.1.
+
 # Главный экран Vitosamin и ссылка на Telegram
 
 **Статус: готово.** Ветка `feat/home-ui`, worktree `/root/MyHome/vpn-client/app-ui`
