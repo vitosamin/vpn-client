@@ -104,11 +104,10 @@ abstract class ConfigOptions {
     // Russia resolves its direct names through a Russian resolver: 1.1.1.1 is throttled or
     // blocked on some mobile networks, and then the sites the region rule sends direct do not
     // resolve at all while the tunnelled ones keep working.
-    defaultValueFunction: (ref) => switch (ref.read(region)) {
-      Region.cn => "udp://223.5.5.5",
-      Region.ru => "udp://77.88.8.8",
-      _ => "udp://1.1.1.1",
-    },
+    // The app ships to Russia: the direct names (the Russian sites rule) resolve through a
+    // Russian resolver from the first launch, whatever region the intro detected. 1.1.1.1 is
+    // throttled or blocked on some Russian mobile networks.
+    defaultValueFunction: (ref) => "udp://77.88.8.8",
     validator: (value) => value.isNotBlank,
   );
 

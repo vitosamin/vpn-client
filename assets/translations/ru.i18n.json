@@ -115,7 +115,9 @@
       "emptyTitle": "Введите код доступа или добавьте подписку",
       "emptySubtitle": "Код приходит после оплаты в боте, подписку можно добавить по ссылке от провайдера.",
       "haveCode": "У меня есть код",
-      "addSubscription": "Добавить подписку"
+      "addSubscription": "Добавить подписку",
+      "updateAvailable": "Доступно обновление $version",
+      "updateDownload": "Скачать"
     },
     "proxies": {
       "title": "Прокси",
@@ -364,7 +366,8 @@
           "tag": "Встроенное",
           "bypassLan": "Обход LAN",
           "blockAds": "Блокировка рекламы и вирусов",
-          "bypassRegion": "Обход сайтов региона $region"
+          "bypassRegion": "Обход сайтов региона $region",
+          "russianSites": "Российские сайты — напрямую"
         },
         "appBasedRouting": {
           "title": "Маршрутизация по приложениям",

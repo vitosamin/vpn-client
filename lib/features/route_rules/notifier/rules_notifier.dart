@@ -38,7 +38,7 @@ enum BuiltinRule {
   String present(Translations t, Region region) => switch (this) {
     bypassLan => t.pages.settings.routing.builtinRules.bypassLan,
     blockAds => t.pages.settings.routing.builtinRules.blockAds,
-    bypassRegion => t.pages.settings.routing.builtinRules.bypassRegion(region: region.presentName(t)),
+    bypassRegion => t.pages.settings.routing.builtinRules.russianSites,
   };
 
   /// The rule's content as the app ships it. The region rule for Russia is built from the lists
@@ -75,31 +75,24 @@ enum BuiltinRule {
         '$_geoUrl/block/geoip-phishing.srs',
       ],
     ),
-    bypassRegion => _regionRule(region),
+    bypassRegion => _russianSitesRule(),
   }..name = key;
 
-  /// The region's bypass rule. Russia takes the lists bundled in the app: no network, no GitHub.
+  /// The Russian sites rule: every list is bundled in the app, so it needs no network, no
+  /// GitHub and no region setting. The product ships to Russia, so this rule does not depend on
+  /// the region the intro detected: a profile that once got another region (or the old "Other")
+  /// still sends Russian sites direct.
   ///
-  /// The country list is not exhaustive (it has no bare `ru` suffix, for one), so the Russian
-  /// TLDs are added on top: a Russian site that the list misses still goes direct, and the rule
-  /// keeps working on `.ru` even if the assets could not be read. Other regions keep the remote
-  /// rule-set the core downloads, as before.
-  Rule _regionRule(Region region) {
-    if (region != Region.ru) {
-      return Rule(
-        outbound: Outbound.direct,
-        ruleSets: [
-          '$_geoUrl/country/geosite-{region}.srs',
-          '$_geoUrl/country/geoip-{region}.srs',
-        ],
-      );
-    }
+  /// Three layers add up: the country lists (`geosite-ru`, `geoip-ru`), the curated services on
+  /// non-`.ru` domains, and the Russian TLDs. A site that none of the lists names still goes
+  /// direct when it is `.ru`, `.su`, `.рф` or `.moscow`.
+  Rule _russianSitesRule() {
     return Rule(
       outbound: Outbound.direct,
       domains: BundledGeoRules.instance.domains,
       domainSuffixes: [
         ...BundledGeoRules.instance.domainSuffixes,
-        // the Russian TLDs: every `.ru`, `.su` and `.рф` site goes direct, listed or not
+        ...BundledGeoRules.instance.extraSuffixes,
         'ru',
         'su',
         'xn--p1ai',
@@ -131,10 +124,9 @@ class RulesNotifier extends _$RulesNotifier with AppLogger {
   List<Rule> _withBuiltins(List<Rule> saved) {
     final region = ref.read(ConfigOptions.region);
     // the built-ins the list needs, in their own order; each one found in the saved list is crossed off
-    final missing = {
-      for (final builtin in BuiltinRule.values)
-        if (builtin != BuiltinRule.bypassRegion || region != Region.other) builtin,
-    };
+    // The Russian sites rule is always in the list: the product is for Russia, and a profile the
+    // old detector left on "Other" used to lose the rule entirely.
+    final missing = {for (final builtin in BuiltinRule.values) builtin};
     final rules = <Rule>[];
     for (final rule in saved) {
       final builtin = BuiltinRule.of(rule);

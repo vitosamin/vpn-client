@@ -85,7 +85,7 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
     final geo = await BundledGeoRules.load();
     Logger.bootstrap.info(
       "bundled geo: ${geo.domains.length} domains, ${geo.domainSuffixes.length} suffixes, "
-      "${geo.ipCidrs.length} ranges",
+      "${geo.extraSuffixes.length} extra, ${geo.ipCidrs.length} ranges",
     );
   });
 

@@ -64,6 +64,9 @@ void main() {
       expect(geo.domainSuffixes, contains('gosuslugi.ru'));
       expect(geo.ipCidrs.length, greaterThan(20000));
       expect(geo.ipCidrs, contains('98.98.136.0/22'));
+      // curated services on non-.ru domains are in the app too, not fetched from GitHub
+      expect(geo.extraSuffixes, contains('vk.com'));
+      expect(geo.extraSuffixes, contains('ozon.com'));
       // one malformed entry would make the core drop the rule's whole IP condition silently
       final malformed = geo.ipCidrs.where((cidr) => !RegExp(r'^[0-9a-fA-F:.]+/\d{1,3}$').hasMatch(cidr));
       expect(malformed, isEmpty);
@@ -80,6 +83,7 @@ void main() {
         rule.domainSuffixes,
         [
           ...BundledGeoRules.instance.domainSuffixes,
+          ...BundledGeoRules.instance.extraSuffixes,
           // the country list has no bare TLD entry: the rule adds them so every .ru site is direct
           'ru',
           'su',
@@ -96,14 +100,14 @@ void main() {
       expect(BundledGeoRules.instance.domainSuffixes, isNot(contains('ru')));
     });
 
-    test('stays a remote rule-set for every other region', () {
+    test('is the same bundled Russian rule for every region', () {
+      // The product ships to Russia: the rule does not depend on the region the intro detected,
+      // so a profile left on another region still sends Russian sites direct.
       final rule = BuiltinRule.bypassRegion.rule(Region.ir);
       expect(rule.outbound, Outbound.direct);
-      expect(rule.ruleSets, [
-        'https://raw.githubusercontent.com/hiddify/hiddify-geo/rule-set/country/geosite-{region}.srs',
-        'https://raw.githubusercontent.com/hiddify/hiddify-geo/rule-set/country/geoip-{region}.srs',
-      ]);
-      expect(rule.domains, isEmpty);
+      expect(rule.ruleSets, isEmpty);
+      expect(rule.domains, BundledGeoRules.instance.domains);
+      expect(rule.domainSuffixes, containsAll(['yandex.ru', 'vk.com', 'ru']));
     });
   });
 
@@ -131,10 +135,16 @@ void main() {
       expect(rangesRule.ipCidrs, BundledGeoRules.instance.ipCidrs);
     });
 
-    test('keep the remote rule-set for a region with no bundled lists', () async {
+    test('keep the Russian rule and its ranges for another region', () async {
       final rules = effectiveRouteRules(rulesOf(await open(region: Region.ir)));
-      expect([for (final rule in rules) rule.name], ['builtin:bypassLan', 'builtin:blockAds', 'builtin:bypassRegion']);
-      expect(rules.last.ruleSets, isNotEmpty);
+      expect([for (final rule in rules) rule.name], [
+        'builtin:bypassLan',
+        'builtin:blockAds',
+        'builtin:bypassRegion',
+        'builtin:bypassRegion:ip',
+      ]);
+      expect(rules[2].ruleSets, isEmpty);
+      expect(rules[3].ipCidrs, BundledGeoRules.instance.ipCidrs);
     });
 
     test('add no ranges when the region rule is switched off', () async {

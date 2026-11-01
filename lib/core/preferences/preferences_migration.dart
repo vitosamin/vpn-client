@@ -153,7 +153,7 @@ class PreferencesVersion3Migration extends PreferencesMigrationStep with InfraLo
       region = "ru";
     }
     final dns = sharedPreferences.getString("direct-dns-address");
-    if ((region == null || region == "ru") && dns != null && _oldDefault.contains(dns)) {
+    if (dns != null && _oldDefault.contains(dns)) {
       loggy.info("direct DNS for Russia: [$dns] -> [$_russian]");
       await sharedPreferences.setString("direct-dns-address", _russian);
     }

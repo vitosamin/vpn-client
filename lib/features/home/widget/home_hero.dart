@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/model/constants.dart';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
+import 'package:hiddify/features/app_update/notifier/app_update_notifier.dart';
+import 'package:hiddify/features/app_update/notifier/app_update_state.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
@@ -74,7 +76,11 @@ class HomeHero extends HookConsumerWidget {
                 const Gap(18),
                 // the status is drawn here, the button below only acts
                 _StatusBlock(state: state),
-                const Gap(16),
+                const Gap(12),
+                // A newer release is offered here as well as in the start-up dialog: the dialog
+                // is easy to dismiss, the tile stays until the app is updated.
+                const _UpdateTile(),
+                const Gap(4),
                 // a normal primary action instead of the big white circle: the brand gradient
                 // carries the state, the power glyph and the verb say what a tap does
                 const ConnectionButton(showLabel: false, variant: ConnectionButtonVariant.pill),
@@ -199,6 +205,56 @@ class _StatusBlock extends StatelessWidget {
                 ),
         ),
       ],
+    );
+  }
+}
+
+/// A newer release from GitHub Releases, as a tile inside the hero: the start-up dialog can be
+/// dismissed, this one stays until the APK is installed.
+class _UpdateTile extends ConsumerWidget {
+  const _UpdateTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final update = ref.watch(appUpdateNotifierProvider);
+    if (update is! AppUpdateStateAvailable) return const SizedBox.shrink();
+    final t = ref.watch(translationsProvider).requireValue;
+    final theme = Theme.of(context);
+    final info = update.versionInfo;
+    return Material(
+      color: _Hero.accent.withValues(alpha: .18),
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('home_update_tile'),
+        onTap: () => UriUtils.tryLaunch(Uri.parse(info.url)),
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 10, 10),
+          child: Row(
+            children: [
+              const Icon(Icons.system_update_alt_rounded, size: 20, color: Colors.white),
+              const Gap(10),
+              Expanded(
+                child: Text(
+                  t.pages.home.updateAvailable(version: info.presentVersion),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(color: Colors.white),
+                ),
+              ),
+              const Gap(8),
+              Text(
+                t.pages.home.updateDownload,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: const Color(0xFFB7C4FF),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.white70),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

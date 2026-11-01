@@ -1,7 +1,7 @@
 name: hiddify
 description: Vitosamin — защищённый сетевой профиль (Android/iOS).
 publish_to: "none"
-version: 1.0.3+4
+version: 1.0.4+5
 
 environment:
   sdk: ^3.10.4
@@ -159,6 +159,7 @@ flutter:
     - assets/geo/ru_domain.txt
     - assets/geo/ru_domain_suffix.txt
     - assets/geo/ru_ip_cidr.txt
+    - assets/geo/ru_extra.txt
     - assets/images/logo.svg
     - assets/images/tray_icon.ico
     - assets/images/tray_icon.png

@@ -8,10 +8,15 @@ import 'package:flutter/services.dart';
 /// outbound from the first connect. They end up as ordinary conditions of a sing-box rule
 /// (domains, domain suffixes and IP ranges), not as a rule-set the core would fetch.
 class BundledGeoRules {
-  const BundledGeoRules({required this.domains, required this.domainSuffixes, required this.ipCidrs});
+  const BundledGeoRules({
+    required this.domains,
+    required this.domainSuffixes,
+    required this.ipCidrs,
+    required this.extraSuffixes,
+  });
 
   /// What the rule has before [load] ran, or when loading failed: nothing at all.
-  static const empty = BundledGeoRules(domains: [], domainSuffixes: [], ipCidrs: []);
+  static const empty = BundledGeoRules(domains: [], domainSuffixes: [], ipCidrs: [], extraSuffixes: []);
 
   /// The lists loaded at startup, see `lazyBootstrap`. A blank instance means the region rule has
   /// to fall back to a remote rule-set (the app has no local data to build it from).
@@ -21,12 +26,17 @@ class BundledGeoRules {
   final List<String> domainSuffixes;
   final List<String> ipCidrs;
 
-  bool get isEmpty => domains.isEmpty && domainSuffixes.isEmpty && ipCidrs.isEmpty;
+  /// Curated Russian services on non-`.ru` domains (see `assets/geo/ru_extra.txt`), matched as
+  /// suffixes too: the country list does not carry every one of them.
+  final List<String> extraSuffixes;
+
+  bool get isEmpty => domains.isEmpty && domainSuffixes.isEmpty && ipCidrs.isEmpty && extraSuffixes.isEmpty;
 
   static const _assetDirectory = 'assets/geo';
   static const _domainsAsset = '$_assetDirectory/ru_domain.txt';
   static const _domainSuffixesAsset = '$_assetDirectory/ru_domain_suffix.txt';
   static const _ipCidrsAsset = '$_assetDirectory/ru_ip_cidr.txt';
+  static const _extraAsset = '$_assetDirectory/ru_extra.txt';
 
   /// Reads the files into [instance], one list item per line, and returns them.
   ///
@@ -38,11 +48,13 @@ class BundledGeoRules {
       assets.loadString(_domainsAsset),
       assets.loadString(_domainSuffixesAsset),
       assets.loadString(_ipCidrsAsset),
+      assets.loadString(_extraAsset),
     ]);
     final rules = BundledGeoRules(
       domains: _parse(contents[0]),
       domainSuffixes: _parse(contents[1]),
       ipCidrs: _parse(contents[2]),
+      extraSuffixes: _parse(contents[3]),
     );
     instance = rules;
     return rules;

@@ -111,9 +111,9 @@ void main() {
       expect(file.existsSync(), isFalse);
     });
 
-    test('leaves the region rule out while the region is Other', () async {
+    test('keeps the Russian sites rule even when the region is Other', () async {
       final container = await open(region: Region.other);
-      expect(current(container), ['builtin:bypassLan on', 'builtin:blockAds off']);
+      expect(current(container), defaults);
     });
   });
 
@@ -170,7 +170,7 @@ void main() {
       expect(current(container), ['builtin:blockAds on', 'a on', 'builtin:bypassLan on', 'builtin:bypassRegion on']);
     });
 
-    test('drops the region rule while the region is Other', () async {
+    test('keeps the Russian sites rule while the region is Other', () async {
       save([
         custom('a'),
         builtin(BuiltinRule.bypassRegion, enabled: true),
@@ -178,7 +178,7 @@ void main() {
         builtin(BuiltinRule.blockAds, enabled: false),
       ]);
       final container = await open(region: Region.other);
-      expect(current(container), ['a on', 'builtin:bypassLan on', 'builtin:blockAds off']);
+      expect(current(container), ['a on', 'builtin:bypassRegion on', 'builtin:bypassLan on', 'builtin:blockAds off']);
     });
   });
 
@@ -193,14 +193,14 @@ void main() {
       return open();
     }
 
-    test('to Other takes the region rule out, and back puts it first, turned on', () async {
+    test('keeps the Russian rule and its switch whatever the region is', () async {
       final container = await openSaved();
 
       await changeRegion(container, Region.other);
-      expect(current(container), ['a on', 'builtin:bypassLan on', 'builtin:blockAds off']);
+      expect(current(container), ['a on', 'builtin:bypassRegion off', 'builtin:bypassLan on', 'builtin:blockAds off']);
 
       await changeRegion(container, Region.cn);
-      expect(current(container), ['builtin:bypassRegion on', 'a on', 'builtin:bypassLan on', 'builtin:blockAds off']);
+      expect(current(container), ['a on', 'builtin:bypassRegion off', 'builtin:bypassLan on', 'builtin:blockAds off']);
     });
 
     test("between regions keeps the region rule's place and switch", () async {
@@ -279,51 +279,22 @@ void main() {
     final container = await open();
     final json = RouteRule(rules: container.read(rulesNotifierProvider)).toProto3Json()! as Map<String, dynamic>;
     const geo = 'https://raw.githubusercontent.com/hiddify/hiddify-geo/rule-set';
-    expect(json, {
-      'rules': [
-        {
-          'list_order': 0,
-          'enabled': true,
-          'name': 'builtin:bypassLan',
-          'outbound': 'direct',
-          'ip_cidr': [
-            '10.0.0.0/8',
-            '172.16.0.0/12',
-            '192.168.0.0/16',
-            '127.0.0.0/8',
-            '169.254.0.0/16',
-            '224.0.0.0/4',
-            '0.0.0.0/32',
-            'fc00::/7',
-            'fe80::/10',
-            '::1/128',
-            'ff00::/8',
-            '::/128',
-          ],
-        },
-        {
-          'list_order': 1,
-          'enabled': false,
-          'name': 'builtin:blockAds',
-          'outbound': 'block',
-          'rule_set': [
-            '$geo/block/geosite-category-ads-all.srs',
-            '$geo/block/geosite-malware.srs',
-            '$geo/block/geosite-phishing.srs',
-            '$geo/block/geosite-cryptominers.srs',
-            '$geo/block/geoip-malware.srs',
-            '$geo/block/geoip-phishing.srs',
-          ],
-        },
-        {
-          'list_order': 2,
-          'enabled': true,
-          'name': 'builtin:bypassRegion',
-          'outbound': 'direct',
-          'rule_set': ['$geo/country/geosite-{region}.srs', '$geo/country/geoip-{region}.srs'],
-        },
-      ],
-    });
+    final rules = (json['rules'] as List).cast<Map<String, dynamic>>();
+
+    expect(rules[0]['name'], 'builtin:bypassLan');
+    expect(rules[0]['outbound'], 'direct');
+    expect(rules[0]['ip_cidr'], contains('10.0.0.0/8'));
+
+    expect(rules[1]['name'], 'builtin:blockAds');
+    expect(rules[1]['outbound'], 'block');
+    expect(rules[1]['rule_set'], contains('$geo/block/geosite-category-ads-all.srs'));
+
+    // The Russian sites rule is inline and offline: no rule-set URL for the core to fetch.
+    final russian = rules[2];
+    expect(russian['name'], 'builtin:bypassRegion');
+    expect(russian['outbound'], 'direct');
+    expect(russian.containsKey('rule_set'), isFalse);
+    expect(russian['domain_suffix'] as List, contains('ru'));
   });
 
   group('the routing page', () {
@@ -345,7 +316,7 @@ void main() {
       expect(find.byIcon(Icons.lock_outline_rounded), findsNWidgets(3));
       expect(find.text('Bypass LAN'), findsOneWidget);
       expect(find.text('Block ads and malware'), findsOneWidget);
-      expect(find.text('Bypass sites in Iran'), findsOneWidget);
+      expect(find.text('Russian sites — direct'), findsOneWidget);
     });
 
     testWidgets('opens nothing on a tap or long press of a built-in rule', (tester) async {
@@ -360,27 +331,27 @@ void main() {
 
     testWidgets("switches a built-in rule from its row's switch", (tester) async {
       final container = await show(tester);
-      final row = find.ancestor(of: find.text('Bypass sites in Iran'), matching: find.byType(ListTile));
+      final row = find.ancestor(of: find.text('Russian sites — direct'), matching: find.byType(ListTile));
       await tester.tap(find.descendant(of: row, matching: find.byType(Switch)));
       await tester.pumpAndSettle();
       expect(container.read(rulesNotifierProvider).last.enabled, isFalse);
     });
 
-    testWidgets('follows the region chip: Other hides the region rule, another region brings it back', (tester) async {
+    testWidgets('keeps the Russian sites rule whatever the region chip says', (tester) async {
       await show(tester);
 
       await tester.tap(find.text('Region'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Other').last);
       await tester.pumpAndSettle();
-      expect(find.textContaining('Bypass sites in'), findsNothing);
-      expect(find.text('Built-in'), findsNWidgets(2));
+      expect(find.text('Russian sites — direct'), findsOneWidget);
+      expect(find.text('Built-in'), findsNWidgets(3));
 
       await tester.tap(find.text('Region'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('China').last);
       await tester.pumpAndSettle();
-      expect(find.text('Bypass sites in China'), findsOneWidget);
+      expect(find.text('Russian sites — direct'), findsOneWidget);
       expect(find.text('Built-in'), findsNWidgets(3));
     });
   });

@@ -111,7 +111,9 @@
       "emptyTitle": "Enter your access code or add a subscription",
       "emptySubtitle": "The code comes after payment in the bot; a subscription link comes from your provider.",
       "haveCode": "I have a code",
-      "addSubscription": "Add subscription"
+      "addSubscription": "Add subscription",
+      "updateAvailable": "Update available: $version",
+      "updateDownload": "Download"
     },
     "proxies": {
       "title": "Proxies",
@@ -366,7 +368,8 @@
           "tag": "Built-in",
           "bypassLan": "Bypass LAN",
           "blockAds": "Block ads and malware",
-          "bypassRegion": "Bypass sites in $region"
+          "bypassRegion": "Bypass sites in $region",
+          "russianSites": "Russian sites — direct"
         },
         "appBasedRouting": {
           "title": "App-based routing",

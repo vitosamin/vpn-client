@@ -10,6 +10,10 @@ picture.
 | `ru_domain.txt` | exact domains of `geosite-ru` | `hiddify-geo/rule-set/country/geosite-ru.srs` |
 | `ru_domain_suffix.txt` | domain suffixes of `geosite-ru` | same |
 | `ru_ip_cidr.txt` | CIDRs of `geoip-ru` | `hiddify-geo/rule-set/country/geoip-ru.srs` |
+| `ru_extra.txt` | curated Russian services on non-`.ru` domains (`vk.com`, `ozon.com`, banks, media, …) | maintained by hand |
+
+`ru_extra.txt` is not touched by `scripts/update-geo-rules.sh`. The rule also adds the Russian
+TLDs (`ru`, `su`, `xn--p1ai`, `moscow`) and, from 1.0.4, no longer depends on the region setting.
 
 One item per line, no comments, sorted and de-duplicated. Last update: the rule-set revision
 downloaded on 2026-10-31:
