@@ -67,7 +67,8 @@ class AppUpdateNotifier extends _$AppUpdateNotifier with AppLogger {
     await _lastCheckPref.write(DateTime.now().millisecondsSinceEpoch);
     loggy.debug("checking for update");
     state = const AppUpdateState.checking();
-    final appInfo = ref.watch(appInfoProvider).requireValue;
+    // The start-up check can run before the package info has loaded: wait for it.
+    final appInfo = await ref.read(appInfoProvider.future);
     if (!appInfo.release.allowCustomUpdateChecker) {
       loggy.debug("custom update checkers are not allowed for [${appInfo.release.name}] release");
       return state = const AppUpdateState.disabled();
