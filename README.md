@@ -6,7 +6,7 @@
 напрямую, мимо туннеля.
 
 Это **публичный форк** [Hiddify App](https://github.com/hiddify/hiddify-app) 5.3.0
-(Flutter + sing-box). Лицензия и обязательства форка — [LICENSE.md](LICENSE.md) и
+(Flutter + sing-box): [vitosamin/vpn-client](https://github.com/vitosamin/vpn-client). Лицензия и обязательства форка — [LICENSE.md](LICENSE.md) и
 [docs/adr-001-base-and-license.md](docs/adr-001-base-and-license.md).
 
 ## Что уже работает
@@ -20,6 +20,12 @@
 - главный экран: статус, кнопка подключения, сервер, остаток трафика, Telegram;
 - обновления прямо с телефона: приложение проверяет GitHub Releases форка и
   предлагает скачать новый APK — без магазина приложений.
+
+## Установка
+
+Готовые подписанные APK — в [Releases](https://github.com/vitosamin/vpn-client/releases):
+универсальный `vitosamin-<версия>-release.apk` или компактный
+`…-arm64.apk`. Ставится поверх прошлой версии, настройки сохраняются.
 
 ## Сборка APK
 

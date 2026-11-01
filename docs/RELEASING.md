@@ -1,5 +1,10 @@
 # Как выпустить обновление
 
+Репозиторий: **https://github.com/vitosamin/vpn-client** (публичный форк
+`hiddify/hiddify-app`). Секреты подписи уже выставлены, первый релиз
+[`v1.0.2`](https://github.com/vitosamin/vpn-client/releases/tag/v1.0.2) собран
+workflow `Release APK`.
+
 Лицензия Hiddify требует собирать релизы **только в GitHub Actions**, поэтому
 подписанный APK не собирается на телефоне и не кладётся в релиз руками: тег → workflow
 `.github/workflows/release-apk.yml` → APK в GitHub Releases.
@@ -13,6 +18,10 @@
 | `KEYSTORE_BASE64` | `base64 -w0 release.jks` (одной строкой) |
 | `KEYSTORE_PASSWORD` | пароль из `keystore-password.txt` |
 | `KEY_ALIAS` | `vitosamin` |
+
+Доступ к GitHub у агента — через OAuth-токен `gh` (scopes `repo`, `workflow`);
+он лежит в `/home/dsh/projects/.sandbox/.gh-oauth-token`, git — в
+`.sandbox/.git-credentials-oauth`.
 
 ```bash
 base64 -w0 release.jks > keystore.b64
