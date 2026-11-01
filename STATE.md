@@ -49,7 +49,5 @@ Android-клиент Vitosamin (3x-ui, VLESS/Reality), форк Hiddify App 5.3.
 
 - `android-actions/setup-android@v3` падает на раннере — workflow берёт SDK раннера.
 - `flutter test` целиком падает на 27 тестах без `libsqlite3.so` (drift).
-- `~/.android` только для чтения: `HOME=…/.home`, `ANDROID_USER_HOME=…/.home/.android`,
-  Gradle `-Duser.home` в `.gradle/gradle.properties`.
 - В geosite-ru нет голого суффикса `ru`, а прямой DNS 1.1.1.1 режется на части
   мобильных сетей РФ.
